@@ -852,6 +852,33 @@ test('[FR-2] plugin rm 未记账名：✗ 含该名与已装插件→profile 清
   assert.equal(JSON.parse(lockBefore).plugins[PKG].profile, 'dev', '已记账项不卸');
 });
 
+test('[FR-2] plugin rm --profile 覆盖：转发用覆盖 profile、锁文件清账面记录、摘要注明覆盖', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev', 'test']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const lockBefore = readLockfileAt(project);
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'rm', PKG, '--profile', 'test'], env);
+  assert.equal(code, 0, `覆盖卸载应成功退出：${stderr}`);
+
+  // 转发用覆盖 profile（spec：官方命令转发与卸后对账都用给定 profile）
+  assert.deepEqual(readShimCalls(shimLog).slice(-1), [['plugin', '--profile', 'test', 'remove', PKG]]);
+  // 锁文件仍清该名账面记录（账面单条目结构，覆盖卸后即无账）
+  const lockfile = readLockfileAt(project);
+  assert.deepEqual(lockfile.plugins, {}, '锁文件应清该名账面记录');
+  assert.equal(lockfile.packageVersion, lockBefore.packageVersion, '骨架 packageVersion 保留');
+  // 账面 profile dev 的落点不得被动（覆盖语义只落 test）
+  const devPkg = JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8'));
+  assert.equal(devPkg.dependencies[PKG], PLUGIN_VERSION, '账面 profile 落点不得被动');
+  // 摘要注明 profile 覆盖
+  const output = plainText(stdout + stderr);
+  assert.match(output, /已卸载插件.*←dshprofiletest（--profile覆盖账面dev）/ , '摘要应注明覆盖与账面值');
+});
+
 test('[FR-2] plugin remove --all 跨 profile 全卸：逐条按各自账面 profile、退出 0；再卸空账提示退 0 零落盘', (t) => {
   const project = makeProject(t);
   const dshHome = makeDshHome(t, ['dev', 'test']);
