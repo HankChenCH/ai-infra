@@ -12,6 +12,7 @@ import path from 'node:path';
 import { buildPluginRemoveCommand, resolveExecutor, assertPluginPreconditions } from './dsh-command.ts';
 import { reconcilePluginUninstall } from './reconcile.ts';
 import { readLockfile, writeLockfile } from './lockfile.ts';
+import { runCommand } from './plugin-install.ts';
 import type { CommandRunResult, CommandRunner } from './plugin-install.ts';
 
 export interface UninstallPluginTarget {
@@ -27,6 +28,8 @@ export interface RemovedPlugin {
 
 export interface UninstallPluginsResult {
   removed: RemovedPlugin[];
+  // 卸载完成后锁文件 plugins 账面剩余条数（呈现层「plugins 剩 N 项」用）
+  remaining: number;
 }
 
 export function uninstallPlugins({
@@ -35,7 +38,7 @@ export function uninstallPlugins({
   dshInPath,
   projectRoot,
   nodeVersion = process.version,
-  run,
+  run = runCommand,
 }: {
   targets: UninstallPluginTarget[];
   // profile 根目录（$DSH_HOME/profiles/）：逐条对账按各自 profile 取 <root>/<profile>/package.json
@@ -43,7 +46,7 @@ export function uninstallPlugins({
   dshInPath: boolean;
   projectRoot: string;
   nodeVersion?: string;
-  run: CommandRunner;
+  run?: CommandRunner;
 }): UninstallPluginsResult {
   if (!Array.isArray(targets) || targets.length === 0) {
     throw new Error('未选择任何条目：targets 为空，拒绝卸载');
@@ -87,5 +90,5 @@ export function uninstallPlugins({
       );
     }
   }
-  return { removed };
+  return { removed, remaining: Object.keys(lockfile.plugins).length };
 }

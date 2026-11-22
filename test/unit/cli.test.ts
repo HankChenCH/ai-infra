@@ -23,8 +23,11 @@ import {
   resolveSkillSelection,
 } from '../../src/commands/skill/names.ts';
 import {
+  EMPTY_PLUGIN_LEDGER_NOTICE,
   ERR_PROFILE_VALUE,
   profileRequiredLines,
+  resolvePluginLedgerRemoval,
+  resolvePluginRemoveSelection,
   resolvePluginSelection,
 } from '../../src/commands/plugin/names.ts';
 import { unknownCommandMessage, unknownFlagMessage } from '../../src/program.ts';
@@ -294,4 +297,185 @@ test('缺 --profile 三行结构：无既有项输出任意新名说明行', () 
     '未发现既有 profile（$DSH_HOME/profiles/，缺省 ~/.dsh/profiles/）——可用任意新名。',
     '示例：npx @hankchen/infra plugin add @hankchen/dsh-demo --profile dev',
   ]);
+});
+
+// ---- spec 20261122-edb2 plugin remove 解析矩阵（票 20261122-0204，S1/S2）----
+// seam = src/commands/plugin/names.ts（resolvePluginRemoveSelection / resolvePluginLedgerRemoval）。
+// 期望值独立来源 = spec 实现决策原文：目标 profile 由账面自动定位（--profile 显式覆盖）、
+// 任一名字账面无记录整体拒绝（同构 skill 侧）、--all 与名互斥（同 add 口径）。
+// 归一化与 add 共用同一单源（不另测归一化实现，只测 remove 侧分支）。
+
+const ERR_PLUGIN_REMOVE_ALL_MUTEX = '--all 与插件名互斥：全卸与按条目指定只能选一';
+// --all × --profile 组合无 spec 语义（--all 按各条目账面 profile 卸，覆盖无落点）：
+// 实现拍板显式拒绝而非静默忽略（fail loud；spec 实现决策互斥口径同族）。
+const ERR_PLUGIN_REMOVE_ALL_PROFILE_MUTEX = '--profile 与 --all 互斥：全卸按各条目账面 profile 执行';
+const ERR_PLUGIN_REMOVE_NAMES_EMPTY = 'plugin remove 需要至少一个插件名（如 plugin remove @hankchen/dsh-demo）';
+
+const PLUGIN_REMOVE_SELECTION_ROWS: Array<{
+  name: string;
+  tokens: string[];
+  all: boolean;
+  profile: string | undefined;
+  isTTY: boolean;
+  error?: string;
+  want?: { kind: string; names?: string[]; profile?: string };
+}> = [
+  {
+    name: '带名免交互：账面定位（无 --profile 时 profile 为 undefined）',
+    tokens: ['@hankchen/dsh-demo'],
+    all: false,
+    profile: undefined,
+    isTTY: false,
+    want: { kind: 'names', names: ['@hankchen/dsh-demo'], profile: undefined },
+  },
+  {
+    name: '带名 --profile 覆盖：profile 随旗标（账面定位被覆盖）',
+    tokens: ['@hankchen/dsh-demo'],
+    all: false,
+    profile: 'test',
+    isTTY: false,
+    want: { kind: 'names', names: ['@hankchen/dsh-demo'], profile: 'test' },
+  },
+  {
+    name: '归一化与 add 同构：a,b a → 并集保序去重 [a,b]',
+    tokens: ['a,b', 'a'],
+    all: false,
+    profile: undefined,
+    isTTY: false,
+    want: { kind: 'names', names: ['a', 'b'], profile: undefined },
+  },
+  {
+    name: '--all 全卸',
+    tokens: [],
+    all: true,
+    profile: undefined,
+    isTTY: false,
+    want: { kind: 'all' },
+  },
+  {
+    name: '--all 与名互斥（同 add 口径）',
+    tokens: ['@hankchen/dsh-demo'],
+    all: true,
+    profile: undefined,
+    isTTY: true,
+    error: ERR_PLUGIN_REMOVE_ALL_MUTEX,
+  },
+  {
+    name: '--all 与 --profile 互斥（全卸按各条目账面 profile，覆盖无落点）',
+    tokens: [],
+    all: true,
+    profile: 'dev',
+    isTTY: true,
+    error: ERR_PLUGIN_REMOVE_ALL_PROFILE_MUTEX,
+  },
+  {
+    name: '空段 token 过滤后为空报错（remove 侧口径）',
+    tokens: [' , '],
+    all: false,
+    profile: undefined,
+    isTTY: false,
+    error: ERR_PLUGIN_REMOVE_NAMES_EMPTY,
+  },
+  {
+    name: '无参且有 TTY：进交互勾选分支（源=锁文件账面）',
+    tokens: [],
+    all: false,
+    profile: undefined,
+    isTTY: true,
+    want: { kind: 'interactive' },
+  },
+  {
+    name: '无参且非 TTY：守卫文案报错（共享单源）',
+    tokens: [],
+    all: false,
+    profile: undefined,
+    isTTY: false,
+    error: ERR_INTERACTIVE_TTY,
+  },
+];
+
+for (const row of PLUGIN_REMOVE_SELECTION_ROWS) {
+  test(`plugin remove 选择校验：${row.name}`, () => {
+    const selection = resolvePluginRemoveSelection({ tokens: row.tokens, all: row.all, profile: row.profile, isTTY: row.isTTY });
+    if (row.error !== undefined) {
+      assert.deepEqual(selection, { kind: 'error', message: row.error });
+    } else {
+      assert.deepEqual(selection, row.want);
+    }
+  });
+}
+
+// 账面校验判定（spec S2）：requested 全部在账才放行且逐条定 profile（账面取值 / --profile
+// 覆盖）；任一无记账（全未记账/部分未记账）整体拒绝——文案含未记账名 + 已装清单（插件→profile）
+// + plugin ls 指路。
+const PLUGIN_LEDGER_ROWS: Array<{
+  name: string;
+  names: string[];
+  ledger: Record<string, { profile: string }>;
+  profile: string | undefined;
+  want: { kind: string; targets?: Array<{ name: string; profile: string; ledgerProfile: string }>; message?: string };
+}> = [
+  {
+    name: '全部在账：放行且逐条取账面 profile',
+    names: ['@hankchen/a', '@hankchen/b'],
+    ledger: { '@hankchen/a': { profile: 'dev' }, '@hankchen/b': { profile: 'test' } },
+    profile: undefined,
+    want: {
+      kind: 'ok',
+      targets: [
+        { name: '@hankchen/a', profile: 'dev', ledgerProfile: 'dev' },
+        { name: '@hankchen/b', profile: 'test', ledgerProfile: 'test' },
+      ],
+    },
+  },
+  {
+    name: '全部在账 + --profile 覆盖：转发/对账 profile 用覆盖值、账面值随行携带',
+    names: ['@hankchen/a'],
+    ledger: { '@hankchen/a': { profile: 'dev' } },
+    profile: 'qa',
+    want: {
+      kind: 'ok',
+      targets: [{ name: '@hankchen/a', profile: 'qa', ledgerProfile: 'dev' }],
+    },
+  },
+  {
+    name: '全未记账：整体拒绝（含该名 + 已装插件→profile 清单 + plugin ls 指路）',
+    names: ['@hankchen/ghost'],
+    ledger: { '@hankchen/a': { profile: 'dev' }, '@hankchen/b': { profile: 'test' } },
+    profile: undefined,
+    want: {
+      kind: 'missing',
+      message: '以下插件没有安装记录（以 .infra-lock.json plugins 账面为准）：@hankchen/ghost；已装：@hankchen/a → dev、@hankchen/b → test（plugin ls 查看）',
+    },
+  },
+  {
+    name: '部分未记账：整体拒绝（不做部分卸载）',
+    names: ['@hankchen/a', '@hankchen/ghost'],
+    ledger: { '@hankchen/a': { profile: 'dev' } },
+    profile: undefined,
+    want: {
+      kind: 'missing',
+      message: '以下插件没有安装记录（以 .infra-lock.json plugins 账面为准）：@hankchen/ghost；已装：@hankchen/a → dev（plugin ls 查看）',
+    },
+  },
+  {
+    name: '空账：整体拒绝且已装清单为（无）',
+    names: ['@hankchen/ghost'],
+    ledger: {},
+    profile: undefined,
+    want: {
+      kind: 'missing',
+      message: '以下插件没有安装记录（以 .infra-lock.json plugins 账面为准）：@hankchen/ghost；已装：（无）（plugin ls 查看）',
+    },
+  },
+];
+
+for (const row of PLUGIN_LEDGER_ROWS) {
+  test(`plugin 账面校验：${row.name}`, () => {
+    assert.deepEqual(resolvePluginLedgerRemoval({ names: row.names, ledger: row.ledger, profile: row.profile }), row.want);
+  });
+}
+
+test('plugin 空账 --all 提示文案（A1 拍板同构：提示退 0）', () => {
+  assert.equal(EMPTY_PLUGIN_LEDGER_NOTICE, '没有已装插件可卸（.infra-lock.json plugins 记账为空）。');
 });

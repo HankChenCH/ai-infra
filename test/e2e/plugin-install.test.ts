@@ -196,7 +196,7 @@ const PROFILE_REQUIRED_NONE = [
 const ERR_PROFILE_VALUE =
   '✗ --profile 需要一个 profile 名（如 plugin add @hankchen/dsh-demo --profile dev）\n';
 const ERR_TTY_GUARD =
-  '✗ 交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all、skill remove <名...>、skill remove --all 或 plugin add <名...> --profile <名>\n';
+  '✗ 交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all、skill remove <名...>、skill remove --all、plugin add <名...> --profile <名>、plugin remove <名...> 或 plugin remove --all\n';
 
 // ---------- [FR-1] plugin add 带名免交互安装全链 ----------
 
