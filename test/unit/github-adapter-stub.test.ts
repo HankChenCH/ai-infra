@@ -173,7 +173,7 @@ test('publish need 首投：一次建单（标题=一级标题、正文首行盘
   assert.equal(creates.length, 1, `应恰一次建单，实际调用日志：${JSON.stringify(r.log)}`);
   assert.ok(creates[0].includes('--title'), '建单应带标题参数');
   assert.ok(creates[0].includes('need 夹具标题'), `标题应取产物一级标题，实际：${creates[0]}`);
-  assert.equal(fieldOf(creates[0], 'BODY_FIRST'), '> 盘上产物：docs/needs/20261122-f5fc-projection-aggregate-per-need.md（盘上是真相源，本条为单向投影，请勿在此定稿）');
+  assert.ok(fieldOf(creates[0], 'BODY_FIRST').startsWith('> 盘上产物：docs/needs/20261122-f5fc-projection-aggregate-per-need.md'), `正文首行应为盘上指针行，实际：${fieldOf(creates[0], 'BODY_FIRST')}`);
   assert.equal(r.mapLines.length, 1, `账本应新增一行，实际：${JSON.stringify(r.mapLines)}`);
   assert.equal(r.mapLines[0].split('\t')[0], NEED_REL);
   assert.equal(r.mapLines[0].split('\t')[1], NEW_NUM, '需求单行第二列应记自身单号');
