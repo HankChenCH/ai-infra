@@ -7,7 +7,7 @@
 // 仓库源码态不变（main 直指 index.ts，零构建直跑与 link: 开发形态可用）；仅打包面两步：
 //   1. tsc emit index.ts → 同路径 index.js（flags = FR-7 控制组实证组合）；
 //   2. 打包清单换载发布态：备份 package.json → main: index.js、exports["."] → ./index.js、
-//      files: [index.js, cordis.patch.yml, client.js]（不含 .ts 源码——spec 预编译契约明文）；
+//      files: [index.js, cordis.patch.yml, client.js, img]（不含 .ts 源码——spec 预编译契约明文）；
 //      postpack 还原仓库树，.gitignore 兜底 pack 中途失败场景。
 // 客户端面编译（spec 20261118-0de6 FR-7，票 20261118-7504）：client/index.ts → 包根 client.js，
 // 形态 = 官方 lazy-CJS factory（一手来源 dsh-client-modules@0.2.2-rc.4 lib/client.js 全部官方
@@ -39,8 +39,12 @@ const manifestPath = path.join(pluginRoot, 'package.json');
 const manifestBackupPath = `${manifestPath}.prepack-bak`;
 
 // 发布态 files 白名单（spec 预编译契约：files 含编译产物与 cordis.patch.yml、不含 .ts 源码；
-// 票 20261118-7504 增客户端产物 client.js——官方 combo 路由资源名硬编码 <包名>/client.js）
-const PUBLISHED_FILES = ['index.js', 'cordis.patch.yml', 'client.js'];
+// 票 20261118-7504 增客户端产物 client.js——官方 combo 路由资源名硬编码 <包名>/client.js；
+// 票 20261122-6b28 增资产目录 img——README 引用的截图随包分发，dsh 介绍页经
+// /api/plugin-manager/detail-file 从安装目录直读，白名单缺项即介绍页图片 404；
+// 本清单须覆盖源码态 package.json files 声明的全部非源码条目，守护测试
+// test/unit/dsh-mcp-prepack-published-files.test.ts）
+const PUBLISHED_FILES = ['index.js', 'cordis.patch.yml', 'client.js', 'img'];
 
 // ---- 客户端面编译（票 20261118-7504）：client/index.ts CJS emit → 官方 lazy-CJS factory shell 包装。
 // 模块形态 CommonJS：factory 闭包内的编译体要的就是 CJS 语义（exports 赋值 + require 调用——
