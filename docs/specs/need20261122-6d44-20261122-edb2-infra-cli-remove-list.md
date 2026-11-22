@@ -1,10 +1,11 @@
 ---
 id: 20261122-edb2
-status: approved
+status: done
 need: 20261122-6d44
 round: 1
 created: 2026-11-22
 approved: 2026-11-22
+done: 2026-11-22
 ---
 # @hankchen/infra 剩余动词补全（round 1）：卸载（remove/rm）与清单（list/ls、list-remote/ls-remote）单轮全量
 
@@ -91,6 +92,13 @@ seam 清单（既有同类测试为先例）：
 - [FR-6 | 工单级] When 运行分层结构契约测试与 `pnpm pack && pnpm run verify:pack <tgz>`，Then 组内动词注册断言过（顶层目录数不变）、三查全过。
 - [FR-2 | 集成级 | 承载票 NNNN] Given 维护者本机 dsh 可用，When 经 `plugin add` 真装进测试 profile 后 `plugin rm` 真卸，Then profile 两落点真实消失、锁文件清账（前置门跳过纪律：无 dsh/registry 环境显式 skip 不假绿）。
 - [FR-1 | 集成级 | 人工：需版本已发布至 npm registry，发布属单向门在验收时点完成] Given 0.6.0 已发布，When 全新项目先 `npx @hankchen/infra@0.6.0 skill add <名>` 再 `skill rm <名>`，Then 卸载成功且锁文件账清（留验收阶段人工执行）。
+
+### 实际边界行为（验收 20261122-702b passed 后蒸馏②修订留痕）
+
+- [FR-2] `plugin remove --all` 与 `--profile` 同给 → 显式互斥拒绝（fail loud，与 `--all`×名互斥同族文案），不静默忽略——spec 原文未定义该组合，实现拍板（评审 20261122-1a4c 裁断合规）。
+- [FR-2] plugin 卸后对账遇 profile 清单文件不存在（ENOENT）→ 视为两落点已消失放行清账；清单存在但不可解析 → 报错保账——「两落点消失」判据按定义成立于清单缺失，保住「对账失败保留账」实质。
+- [FR-1] `skill remove` / `plugin remove` 无参且账空（非 TTY 前不进入交互）→ 沿 `--all` 空账口径提示退 0、零落盘（A1 拍板同构延伸，spec 原文仅定义 `--all` 空账）。
+- [FR-4] remove 侧 `--all`×名互斥报错文案取 add 平行句（全卸语义），口径同构非逐字同文。
 
 ## 非目标
 
