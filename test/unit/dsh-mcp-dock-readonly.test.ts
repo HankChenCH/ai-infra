@@ -868,9 +868,9 @@ test('transport 列降级：describe 被拒时行渲染 —（辅助列显式降
   view.unmount();
 });
 
-// ---- AC4：空态契约（引导文案无按钮无表单入口——spec FR-5 / 拍板 D4）----
+// ---- AC4：空态契约（spec 20261122-3b77 推翻拍板 D4：面板头常驻钮含空态，引导文案逐字保留）----
 
-test('空态渲染引导文案：/mcp add 与对话式添加指引齐备（AC4）', async () => {
+test('空态渲染面板头与引导文案：/mcp add 与对话式添加指引齐备、头部添加钮在场（AC4 反转 D4）', async () => {
   const harness = createHarness();
   const ctx = createClientStubContext([]);
   harness.apply(ctx);
@@ -881,13 +881,17 @@ test('空态渲染引导文案：/mcp add 与对话式添加指引齐备（AC4�
   const tree = view.view().tree as ElementNode;
   assert.equal(tree.props?.['data-mcp-servers'], 'empty', '空清单以 empty 形态渲染');
   const text = textOf(tree);
+  assert.match(text, /MCP Servers/, '空态渲染与非空态同构的面板头标题');
+  assert.match(text, /0 项/, '空态面板头计数 0 项（spec FR-1）');
   assert.match(text, /\/mcp add/, '引导文案含 /mcp add 指引');
   assert.match(text, /mcp_manage/, '引导文案含对话式（自然语言调 mcp_manage 工具）指引');
   assert.ok(text.length > 20, '引导文案非空泛（有可执行的下一步）');
+  const addOpen = nodeWith(tree, 'data-mcp-add-open', 'open');
+  assert.equal(addOpen.type, 'button', '空态含头部「添加」常驻钮（同一 data-mcp-add-open 钩子，spec FR-1）');
   view.unmount();
 });
 
-test('空态无按钮无表单入口（AC4 拍板 D4：不放按钮）', async () => {
+test('空态添加表单在场且默认收起：同一 data-mcp-add-form 钩子、字段结构与非空态一致（AC4 反转 D4）', async () => {
   const harness = createHarness();
   const ctx = createClientStubContext([]);
   harness.apply(ctx);
@@ -896,13 +900,103 @@ test('空态无按钮无表单入口（AC4 拍板 D4：不放按钮）', async (
   await view.settle();
 
   const tree = view.view().tree as ElementNode;
+  const addForm = nodeWith(tree, 'data-mcp-add-form', 'form');
+  assert.match(String(addForm.props?.className), /dsh-mcp-collapsed/, '表单默认收起（与非空态同机制：CSS 可见性、元素树恒在）');
+  assert.equal(nodeWith(tree, 'data-mcp-add-submit', 'submit').type, 'button', '表单提交钮在场');
+  assert.equal(nodeWith(tree, 'data-mcp-add-field', 'name').type, 'input', 'name 字段在场（与非空态同结构）');
+  view.unmount();
+});
+
+test('空态点头部「添加」展开表单（spec FR-2）', async () => {
+  const harness = createHarness();
+  const ctx = createClientStubContext([]);
+  harness.apply(ctx);
+  const view = harness.mountBody(ctx, new AbortController().signal);
+  view.mount();
+  await view.settle();
+
+  const collapsed = nodeWith(view.view().tree as ElementNode, 'data-mcp-add-form', 'form');
+  assert.match(String(collapsed.props?.className), /dsh-mcp-collapsed/, '展开前收起');
+  clickButton(view.view().tree as ElementNode, 'data-mcp-add-open', 'open');
+  await view.settle();
+  const expanded = nodeWith(view.view().tree as ElementNode, 'data-mcp-add-form', 'form');
+  assert.doesNotMatch(String(expanded.props?.className), /dsh-mcp-collapsed/, '点击头部添加钮后表单展开');
+  view.unmount();
+});
+
+test('空态表单提交走既有写通道：update 形态同源、续推后转非空态（spec FR-3）', async () => {
+  const harness = createHarness();
+  const ctx = createClientStubContext([]);
+  harness.apply(ctx);
+  const view = harness.mountBody(ctx, new AbortController().signal);
+  view.mount();
+  await view.settle();
+  assert.equal((view.view().tree as ElementNode).props?.['data-mcp-servers'], 'empty', '前置：空态');
+
+  clickButton(view.view().tree as ElementNode, 'data-mcp-add-open', 'open');
+  const tree = view.view().tree as ElementNode;
+  changeInput(tree, 'data-mcp-add-field', 'name', 'deployer');
+  changeInput(tree, 'data-mcp-add-field', 'command', 'npx');
+  await view.settle();
+  clickButton(view.view().tree as ElementNode, 'data-mcp-add-submit', 'submit');
+  await view.settle();
+
+  assert.deepEqual(ctx.captured.updateCalls, [
+    {
+      namespace: 'mcp',
+      patch: { servers: { deployer: { transport: 'stdio', command: 'npx' } } },
+      expectedRevision: 0,
+    },
+  ], '空态提交 = 与非空态同源的 settings.update 三参形态（写通道零新路径，spec FR-3）');
+  ctx.pushViews([connectedView('deployer')]);
+  await view.settle();
+  const after = view.view().tree as ElementNode;
+  assert.equal(after.props?.['data-mcp-servers'], 'list', '添加成功续推后转非空清单态');
+  assert.match(textOf(after), /1 项/, '面板头计数更新');
+  view.unmount();
+});
+
+test('空态表单提交被拒：行内错误反馈呈现、已填字段保留（spec FR-4）', async () => {
+  const harness = createHarness();
+  const ctx = createClientStubContext([]);
+  ctx.refuseWrites('官方校验器拒绝该条目');
+  harness.apply(ctx);
+  const view = harness.mountBody(ctx, new AbortController().signal);
+  view.mount();
+  await view.settle();
+
+  changeInput(view.view().tree as ElementNode, 'data-mcp-add-field', 'name', 'deployer');
+  changeInput(view.view().tree as ElementNode, 'data-mcp-add-field', 'command', 'npx');
+  await view.settle();
+  clickButton(view.view().tree as ElementNode, 'data-mcp-add-submit', 'submit');
+  await view.settle();
+
+  assert.equal((view.view().tree as ElementNode).props?.['data-mcp-servers'], 'empty', '拒写后仍空态');
+  const note = nodeWith(view.view().tree as ElementNode, 'data-mcp-add-note', 'note');
+  assert.match(textOf(note), /官方校验器拒绝该条目/, '行内错误反馈呈现（既有 addNote 反馈机制空态同生效）');
+  assert.equal(nodeWith(view.view().tree as ElementNode, 'data-mcp-add-field', 'name').props?.value, 'deployer', '已填 name 字段保留');
+  view.unmount();
+});
+
+test('加载态（首批未到）skeleton 无面板头无添加入口：空态与加载态区分契约不变（spec FR-5）', async () => {
+  const harness = createHarness();
+  const ctx = createClientStubContext([]);
+  harness.apply(ctx);
+  const view = harness.mountBody(ctx, new AbortController().signal);
+  // 首批未到：mount 后首个同步渲染 = 加载态（watch 首批经微任务才到，settle 前断言）
+  view.mount();
+  const tree = view.view().tree as ElementNode;
+  assert.equal(tree.props?.['data-mcp-servers'], 'loading', '首批未到 = loading 形态');
+  assert.match(textOf(tree), /正在读取/, 'skeleton 行 + 读取提示呈现');
   const interactive = collectNodes(tree, (node) =>
     typeof node.type === 'string' && ['button', 'input', 'select', 'textarea', 'form', 'a'].includes(node.type));
   assert.deepEqual(
     interactive.map((node) => node.type),
     [],
-    '空态树中不得出现任何交互元素（button/input/select/textarea/form/a）',
+    '加载态无面板头无任何添加入口（区分契约不变，spec FR-5）',
   );
+  await view.settle();
+  assert.equal((view.view().tree as ElementNode).props?.['data-mcp-servers'], 'empty', '首批到达后转空态（不混淆）');
   view.unmount();
 });
 

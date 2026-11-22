@@ -31,7 +31,8 @@
 //   ThemeSnapshot，不自管双主题）、字体族只许 var() 引用（继承宿主 text/code 用户设置，等宽
 //   线索块用 --ds-font-family-code）、圆角全 var(--dsw-radius-*)、字号 14/12 两档、间距 px
 //   直值（官方组件实况口径）。布局 9 条落位：面板头/行卡/异常内联/行内操作条/添加表单（点
-//   头部「添加」展开，默认收起——收起/展开是 CSS 可见性，元素树恒在）/行内编辑/空态/错误
+//   头部「添加」展开，默认收起——收起/展开是 CSS 可见性，元素树恒在）/行内编辑/空态
+//   （spec 20261122-3b77 推翻 D4：含面板头与添加表单，与非空态同构）/错误
 //   降级/加载态（watch 首批未到 skeleton）。功能零变更契约：data-mcp-* 属性钩子与写通道
 //   调用形态全部不动，样式只改呈现；行操作矩阵保持 round 1 语义（configured 行恒有移除，
 //   不引入一次确认——design 0004 决策 4 的最小矩阵会改功能面，本票非目标）。样式契约自动
@@ -601,7 +602,7 @@ const PANEL_STYLES = [
   // 写反馈注记：拒绝走 state-error（异常优先），成功走次信息色
   '.dsh-mcp-note{margin:8px 0 0;padding:6px 4px 0;color:var(--dsw-alias-label-secondary);font-size:12px}',
   '.dsh-mcp-note-error{color:var(--dsw-alias-state-error-primary)}',
-  // 空态（决策 7）：虚线框 + tertiary 引导，无按钮无表单入口
+  // 空态（决策 7；spec 20261122-3b77 推翻 D4——面板头/添加表单随共享节点入空态）：虚线框 + tertiary 引导
   '.dsh-mcp-empty{margin:8px 0 0;padding:28px 10px;border:1px dashed var(--dsw-alias-border-l2);border-radius:var(--dsw-radius-md);color:var(--dsw-alias-label-tertiary);text-align:center;font-size:14px}',
   '.dsh-mcp-empty p{margin:4px 0}',
   // 错误降级（决策 8）：错误块不崩溃不白屏，摘要 mono 体 + 指引次信息
@@ -929,6 +930,64 @@ function createMcpServersBody(io: McpServersIo): (props: { useTabInfo(): Sidebar
             editNote.ok === true ? editNote.message : editNote.error)));
     };
 
+    // 面板头与添加表单节点（空态/非空清单态共享同一元素——spec 20261122-3b77 推翻拍板 D4：
+    // 面板头常驻钮含空态，表单机制与写通道零新增）
+    // 面板头（决策 1）：标题 + server 计数（次信息 12px）+「添加」常驻钮（primary，头部右侧）
+    const panelHead = createElement('div', { className: 'dsh-mcp-head' },
+      createElement('b', { className: 'dsh-mcp-title' }, 'MCP Servers'),
+      createElement('span', { className: 'dsh-mcp-count' }, `${String(views.length)} 项`),
+      createElement('button', {
+        'data-mcp-add-open': 'open', className: 'dsh-mcp-pri',
+        onClick: () => setAddFormOpen(true),
+      }, '添加'));
+    // 添加表单（决策 5）：点头部「添加」在清单/空态框上方展开（收起/展开是 CSS 可见性——
+    // 元素树恒在，替身契约测试照常直驱字段）；transport 同表单切换，提交/取消在表单底部
+    const addFormNode = createElement('div', { 'data-mcp-add-form': 'form', className: addFormOpen ? 'dsh-mcp-addform' : 'dsh-mcp-addform dsh-mcp-collapsed' },
+      createElement('span', { className: 'dsh-mcp-formtitle' }, '添加 server'),
+      createElement('select', {
+        'data-mcp-add-transport': addTransport,
+        value: addTransport,
+        onChange: (event: InputEventLike) => setAddTransport(event.target.value === 'streamable-http' ? 'streamable-http' : 'stdio'),
+      },
+        createElement('option', { value: 'stdio' }, 'stdio'),
+        createElement('option', { value: 'streamable-http' }, 'streamable-http')),
+      createElement('input', {
+        'data-mcp-add-field': 'name', value: addDraft.name ?? '', placeholder: 'server 名（[A-Za-z0-9_-]{1,32}）',
+        onChange: changeAddField('name'),
+      }),
+      addTransport === 'stdio' ? [
+        createElement('input', {
+          'data-mcp-add-field': 'command', value: addDraft.command ?? '', placeholder: 'command（如 npx）',
+          onChange: changeAddField('command'),
+        }),
+        createElement('input', {
+          'data-mcp-add-field': 'args', value: addDraft.args ?? '', placeholder: '参数（空白分隔，可选）',
+          onChange: changeAddField('args'),
+        }),
+        createElement('input', {
+          'data-mcp-add-field': 'cwd', value: addDraft.cwd ?? '', placeholder: '工作目录（可选）',
+          onChange: changeAddField('cwd'),
+        }),
+        createElement('textarea', {
+          'data-mcp-add-field': 'env', value: addDraft.env ?? '', placeholder: '环境变量，每行 K=V（可选；值可用 ${credential:REF} 模板引用）',
+          onChange: changeAddField('env'),
+        }),
+      ] : [
+        createElement('input', {
+          'data-mcp-add-field': 'url', value: addDraft.url ?? '', placeholder: 'MCP 端点 URL',
+          onChange: changeAddField('url'),
+        }),
+        createElement('textarea', {
+          'data-mcp-add-field': 'headers', value: addDraft.headers ?? '', placeholder: '请求头，每行 K=V（可选；值可用 ${credential:REF} 模板引用）',
+          onChange: changeAddField('headers'),
+        }),
+      ],
+      createElement('div', { className: 'dsh-mcp-formops' },
+        createElement('button', { 'data-mcp-add-submit': 'submit', className: 'dsh-mcp-pri', onClick: () => void submitAdd() }, '添加 server'),
+        createElement('button', { 'data-mcp-add-cancel': 'cancel', className: 'dsh-mcp-ghost', onClick: () => setAddFormOpen(false) }, '取消'),
+        addNote === undefined ? null : createElement('span', { 'data-mcp-add-note': 'note', className: noteClassOf(addNote) },
+          addNote.ok === true ? addNote.message : addNote.error)));
+
     if (streamError !== undefined) {
       // 错误降级（决策 8）：错误块呈现（摘要 mono 体 + 指引次信息），不崩溃不白屏；
       // 文案与 round 1 逐字一致（mono span 内联拆分只改呈现，拼接文本不变）
@@ -950,71 +1009,21 @@ function createMcpServersBody(io: McpServersIo): (props: { useTabInfo(): Sidebar
         createElement('p', { className: 'dsh-mcp-loadinghint' }, '正在读取 server 清单…'));
     }
     if (views.length === 0) {
-      // 空态契约（spec FR-5 / 拍板 D4）：只渲染引导文案，无按钮无表单入口
-      //（添加表单只在非空清单态渲染——D4 只约束空态，见工票 Progress 决策）
+      // 空态契约（spec 20261122-3b77 推翻拍板 D4）：面板头与添加表单与非空清单态同构
+      // （头部「添加」常驻钮含空态），虚线框只剩引导文案（内容逐字不变——会话内方式仍合法）；
+      // 提交走既有写通道，成功后 watch 投影自动转非空清单态
       return createElement('div', { 'data-mcp-servers': 'empty', 'data-mcp-tab-id': tab.id, className: 'dsh-mcp-panel' },
         panelStyleNode,
+        panelHead,
+        addFormNode,
         createElement('div', { className: 'dsh-mcp-empty' },
           createElement('p', null, '还没有配置任何 MCP server。'),
           createElement('p', null, '在会话里输入 /mcp add 添加（支持 stdio 命令与远程端点，敏感值用 ${credential:REF} 模板引用），或直接用自然语言让助手接入（它会调用 mcp_manage 工具）。')));
     }
     return createElement('div', { 'data-mcp-servers': 'list', 'data-mcp-tab-id': tab.id, className: 'dsh-mcp-panel' },
       panelStyleNode,
-      // 面板头（决策 1）：标题 + server 计数（次信息 12px）+「添加」常驻钮（primary，头部右侧）
-      createElement('div', { className: 'dsh-mcp-head' },
-        createElement('b', { className: 'dsh-mcp-title' }, 'MCP Servers'),
-        createElement('span', { className: 'dsh-mcp-count' }, `${String(views.length)} 项`),
-        createElement('button', {
-          'data-mcp-add-open': 'open', className: 'dsh-mcp-pri',
-          onClick: () => setAddFormOpen(true),
-        }, '添加')),
-      // 添加表单（决策 5）：点头部「添加」在清单上方展开（收起/展开是 CSS 可见性——元素树
-      // 恒在，替身契约测试照常直驱字段）；transport 同表单切换，提交/取消在表单底部
-      createElement('div', { 'data-mcp-add-form': 'form', className: addFormOpen ? 'dsh-mcp-addform' : 'dsh-mcp-addform dsh-mcp-collapsed' },
-        createElement('span', { className: 'dsh-mcp-formtitle' }, '添加 server'),
-        createElement('select', {
-          'data-mcp-add-transport': addTransport,
-          value: addTransport,
-          onChange: (event: InputEventLike) => setAddTransport(event.target.value === 'streamable-http' ? 'streamable-http' : 'stdio'),
-        },
-          createElement('option', { value: 'stdio' }, 'stdio'),
-          createElement('option', { value: 'streamable-http' }, 'streamable-http')),
-        createElement('input', {
-          'data-mcp-add-field': 'name', value: addDraft.name ?? '', placeholder: 'server 名（[A-Za-z0-9_-]{1,32}）',
-          onChange: changeAddField('name'),
-        }),
-        addTransport === 'stdio' ? [
-          createElement('input', {
-            'data-mcp-add-field': 'command', value: addDraft.command ?? '', placeholder: 'command（如 npx）',
-            onChange: changeAddField('command'),
-          }),
-          createElement('input', {
-            'data-mcp-add-field': 'args', value: addDraft.args ?? '', placeholder: '参数（空白分隔，可选）',
-            onChange: changeAddField('args'),
-          }),
-          createElement('input', {
-            'data-mcp-add-field': 'cwd', value: addDraft.cwd ?? '', placeholder: '工作目录（可选）',
-            onChange: changeAddField('cwd'),
-          }),
-          createElement('textarea', {
-            'data-mcp-add-field': 'env', value: addDraft.env ?? '', placeholder: '环境变量，每行 K=V（可选；值可用 ${credential:REF} 模板引用）',
-            onChange: changeAddField('env'),
-          }),
-        ] : [
-          createElement('input', {
-            'data-mcp-add-field': 'url', value: addDraft.url ?? '', placeholder: 'MCP 端点 URL',
-            onChange: changeAddField('url'),
-          }),
-          createElement('textarea', {
-            'data-mcp-add-field': 'headers', value: addDraft.headers ?? '', placeholder: '请求头，每行 K=V（可选；值可用 ${credential:REF} 模板引用）',
-            onChange: changeAddField('headers'),
-          }),
-        ],
-        createElement('div', { className: 'dsh-mcp-formops' },
-          createElement('button', { 'data-mcp-add-submit': 'submit', className: 'dsh-mcp-pri', onClick: () => void submitAdd() }, '添加 server'),
-          createElement('button', { 'data-mcp-add-cancel': 'cancel', className: 'dsh-mcp-ghost', onClick: () => setAddFormOpen(false) }, '取消'),
-          addNote === undefined ? null : createElement('span', { 'data-mcp-add-note': 'note', className: noteClassOf(addNote) },
-            addNote.ok === true ? addNote.message : addNote.error))),
+      panelHead,
+      addFormNode,
       createElement('ul', { className: 'dsh-mcp-list' }, views.map((view) => {
         const statusDetail = statusDetailOf(view.status);
         const failureInline = view.status.state === 'failed' || view.status.state === 'waiting-credentials';
