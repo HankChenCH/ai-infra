@@ -3,6 +3,12 @@
 本项目的所有显著变更记录于此。
 格式遵循 Keep a Changelog（https://keepachangelog.com），版本遵循语义化版本。
 
+## [dsh-mcp 0.4.1] - 2026-11-22
+
+### Fixed
+
+- `@hankchen/dsh-mcp` 0.4.1：发布态 files 白名单补 `img`（票 20261122-6b28，spec 20261115-ed9f FR-7；评审 20261122-4475 approved）——插件包 prepack 的 `PUBLISHED_FILES` 硬编码清单在打包时覆写 files，源码态声明的截图目录 `img/` 被静默丢弃，装出去的包在 dsh 介绍页渲染 README 时图片 404（介绍页把相对路径重写为 `/api/plugin-manager/detail-file` 从安装目录直读，缺文件即 404，官方 `@deepseek-ai/dsh-plugin-detail` localFiles 一手源码 + 端点 404/200 对照实测闭环）。守护测试 `test/unit/dsh-mcp-prepack-published-files.test.ts` 探针真跑 prepack 断言换载清单覆盖源码态声明资产（当前缺登记即红）；同批修正 0.4.0 引入的两处连带：README 使用者化重构（使用者文档与维护者笔记分离，维护配方移 `MAINTAINER.md`）后处方契约守护指针跟配方现居文档走、carrier 测试发布态/还原态枚举加 `img`。插件版本 0.4.0→0.4.1（缺陷修复按 patch 升号）。
+
 ## [dsh-mcp 0.4.0] - 2026-11-22
 
 ### Added
