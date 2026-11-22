@@ -399,6 +399,16 @@ git worktree add "<repo>-runs/<spec-id>-t<NNNN>" -b "run/<spec-id>-t<NNNN>" "run
 2. spec 验收场景中标 [FR-N | 集成级] 且仓库已有自动化承载的测试（`CHECK_TEST`
    已覆盖的不再重复跑；无承载的集成场景留给 /dev-accept，运行不代跑）。
 3. 预演记录进运行摘要：哪次合回、哪条命令、什么输出。
+4. **门禁命令执行细则**（会话侧，spec 0016 运行两次假绿实证，折回票
+   20261122-fe59）：门禁命令一律以仓库根为 cwd（会话工作目录会漂移——cwd 错位时
+   `.sdlc/check.sh: no such file or directory` 会被管道尾部命令吞掉，退出码 0 假绿）；
+   退出码直取（zsh `pipestatus[1]` / bash `PIPESTATUS[0]`）——`长命令 | tail` 的管道尾
+   退出码不得当门禁判据；后台跑门禁同理（cwd 显式锚定 + 真实退出码落日志）。
+5. **check-all 系门红先甄别再处置**：进程异常终止形态（输出止于用例名中间、无失败
+   摘要）+ 同套件复跑全绿 + 代码零变化 → 判环境偶发（如 SwiftShader Chromium
+   worker 崩溃），报用户授权后复跑一次；授权复跑策略可编入脚本（rehearse 系确定性
+   门：红则复跑一次，绿则继续、再红停机问人）。可复现的失败摘要（真代码回归特征）
+   不经此通道，直走 SKILL.md §8 预演失败流。
 
 ## 7. 机械合回
 
