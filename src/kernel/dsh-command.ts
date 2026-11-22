@@ -53,6 +53,18 @@ export function buildPluginCommand(executor: Executor, profile: string, packageN
   };
 }
 
+// 卸载动词与安装同构组装（spec 20261122-edb2 实现决策「plugin 卸载编排」）：官方命令形态
+// `dsh plugin --profile <名> remove <包>`，profile 与包名同为独立 argv 元素，不拼 shell 串。
+export function buildPluginRemoveCommand(executor: Executor, profile: string, packageName: string): {
+  command: string;
+  args: string[];
+} {
+  return {
+    command: executor.command,
+    args: [...executor.launcher, 'plugin', '--profile', profile, 'remove', packageName],
+  };
+}
+
 function parseVersionParts(nodeVersion: string): number[] {
   const match = String(nodeVersion).match(/^v?(\d+)\.(\d+)\.(\d+)/);
   if (!match) {

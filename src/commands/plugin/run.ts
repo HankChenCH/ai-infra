@@ -1,7 +1,7 @@
-// plugin 安装运行时（票 20261116-ccfb 起；20261116-bfcf 硬切后为 plugin add 命令的唯一
-// 交互勾选与安装摘要实现，沿 skill 侧 run.ts 先例：helper 复用而非命令注册）。
-// 安装行为（编目校验正名、前置检查、逐条转发官方命令、装后对账、锁文件记账）全部在
-// 安装内核，本层只编排与呈现——语义零变化，仅调用。
+// plugin 安装/卸载运行时（票 20261116-ccfb 起；20261116-bfcf 硬切后为 plugin add 命令的唯一
+// 交互勾选与安装摘要实现，沿 skill 侧 run.ts 先例：helper 复用而非命令注册；票
+// 20261122-0204 增卸载侧交互勾选与卸载摘要——安装行为在安装内核、卸载行为在卸载内核，
+// 本层只编排与呈现）。
 
 import path from 'node:path';
 
@@ -14,10 +14,14 @@ import { commandExists, DSH_COMMAND, resolveExecutor } from '../../kernel/dsh-co
 import { listProfiles, profilesRoot } from '../../kernel/dsh-profiles.ts';
 import { installPlugins, runCommand } from '../../kernel/plugin-install.ts';
 import type { InstallPluginsResult } from '../../kernel/plugin-install.ts';
-import { LOCKFILE_NAME } from '../../kernel/lockfile.ts';
+import { uninstallPlugins } from '../../kernel/plugin-uninstall.ts';
+import type { UninstallPluginsResult } from '../../kernel/plugin-uninstall.ts';
+import { readLockfile, LOCKFILE_NAME } from '../../kernel/lockfile.ts';
+import type { PluginLockEntry } from '../../kernel/lockfile.ts';
 import { checkManagerReadiness, MANAGER_PACKAGE, managerPrescriptionLines, READINESS_TRIGGER_PLUGIN } from '../../kernel/readiness.ts';
 import type { ReadinessOutcome } from '../../kernel/readiness.ts';
 import { skillOptions } from '../../kernel/menu.ts';
+import type { PluginRemovalTarget } from './names.ts';
 
 // 交互勾选结果（评审 20261116-ccfb 增量修正）：编目失败可区分返回，调用方走 ✗ 通道 +
 // 退出 1——spec「错误统一走 ✗ 通道 + 退出码 1」，取消/空选是唯一明文豁免（零落盘退 0），
@@ -212,5 +216,89 @@ function renderPluginSummary(context: ProgramContext, result: InstallPluginsResu
     lines.push(readinessLine);
   }
   lines.push(`记账：${LOCKFILE_NAME}（包版本 ${context.packageVersion}）；重跑本命令即按官方幂等语义刷新安装。`);
+  clack.outro(lines.join('\n'));
+}
+
+// ---------- 卸载侧（spec 20261122-edb2「plugin 卸载语义」，票 20261122-0204）----------
+// 交互勾选源 = 锁文件 plugins 账面（与 add 的编目源不同源；A2 拍板：账面为源、条目提示含
+// 账面 profile、无独立 profile 选择步）；卸载行为（账面为准、前置检查、逐条转发官方命令、
+// 卸后对账、清账）全部在卸载内核，本层只编排与呈现。
+
+// 锁文件 plugins 账面（名 → 记录）。锁文件不存在或无 plugins 区 = 空账（卸载侧无账可卸）；
+// 锁文件损坏原样上抛，由调用方走 ✗ 通道（错误统一退出 1）。
+export function installedPluginLedger(projectRoot: string): Record<string, PluginLockEntry> {
+  const lockfile = readLockfile(projectRoot);
+  return lockfile?.plugins ?? {};
+}
+
+// 已装插件条目（名 + 账面 profile），供交互勾选与 --all 目标装配。
+export function installedPluginEntries(ledger: Record<string, PluginLockEntry>): Array<{ name: string; profile: string }> {
+  return Object.entries(ledger).map(([name, entry]) => ({ name, profile: entry.profile }));
+}
+
+// 已装条目多选（构造与 add 同构：skillOptions 按名排序；条目提示 = 账面 profile——A2 拍板
+// 「条目提示含账面 profile」）。取消（Ctrl-C）与空选确认 → 提示后返回 null，调用方按 0
+// 退出、零落盘（现行交互纪律）。确认摘要列「插件→profile」（无独立 profile 选择步）。
+export async function selectInstalledPluginsInteractive(
+  entries: Array<{ name: string; profile: string }>,
+): Promise<string[] | null> {
+  const profiles = new Map(entries.map((entry) => [entry.name, entry.profile]));
+  const picked = await clack.multiselect({
+    message: `选择要卸载的插件（共 ${entries.length} 项；空格勾选、回车确认）`,
+    options: skillOptions(
+      entries.map((entry) => entry.name),
+      Object.fromEntries(entries.map((entry) => [entry.name, `profile ${entry.profile}`])),
+    ),
+    required: false,
+  });
+  if (clack.isCancel(picked)) {
+    clack.cancel('已取消，未做任何改动。');
+    return null;
+  }
+  if (picked.length === 0) {
+    clack.outro('未勾选任何插件——未做任何改动。');
+    return null;
+  }
+  clack.log.step(`已选 ${picked.length} 项：${picked.map((name) => `${name} → ${profiles.get(name)}`).join('、')}`);
+  return [...picked];
+}
+
+// 卸载 + 完成摘要：spinner → 内核 uninstallPlugins → 摘要（与安装摘要同构：逐条列插件
+// 与 profile / 覆盖注明 / 对账结果 / 记账更新行）。
+export async function uninstallPluginsAndRender(
+  targets: PluginRemovalTarget[],
+  context: ProgramContext,
+  projectRoot: string,
+): Promise<number> {
+  const spinner = clack.spinner();
+  spinner.start(`正在卸载 ${targets.length} 项插件…`);
+  let result: UninstallPluginsResult;
+  try {
+    result = uninstallPlugins({
+      targets: targets.map(({ name, profile }) => ({ name, profile })),
+      profilesRoot: profilesRoot(),
+      dshInPath: commandExists(DSH_COMMAND),
+      projectRoot,
+    });
+  } catch (err) {
+    spinner.stop('卸载失败');
+    clack.log.error(err.message);
+    return 1;
+  }
+  spinner.stop(`卸载完成（${result.removed.length} 项）`);
+  renderUninstallSummary(targets, result, context);
+  return 0;
+}
+
+function renderUninstallSummary(targets: PluginRemovalTarget[], result: UninstallPluginsResult, context: ProgramContext): void {
+  const ledgerProfiles = new Map(targets.map((target) => [target.name, target.ledgerProfile]));
+  const lines = result.removed.map((entry) => {
+    const ledgerProfile = ledgerProfiles.get(entry.name);
+    const override = ledgerProfile !== undefined && ledgerProfile !== entry.profile
+      ? `（--profile 覆盖账面 ${ledgerProfile}）`
+      : '';
+    return `已卸载插件 ${entry.name} ← dsh profile ${entry.profile}${override}（对账：依赖行 + bundles 行已消失）`;
+  });
+  lines.push(`记账：${LOCKFILE_NAME}（plugins 剩 ${result.remaining} 项；包版本 ${context.packageVersion}）；重装同款插件用 plugin add <名> --profile <名>。`);
   clack.outro(lines.join('\n'));
 }
