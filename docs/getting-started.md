@@ -38,6 +38,27 @@ npx @hankchen/infra skill add dev-spec ref-testing       # 空格分隔多个名
 - **从 0.1.x 升级**：命令面已切为子命令形态，0.1.x 的旧旗标输入已退役（跑出来会按「未知旗标」口径报错并指路 `--help`）——已装 0.1.x 的使用者直接改跑 `npx @hankchen/infra skill add`（或带名/`--all`）即按当前包内容刷新，无需先卸载。
 - **锁版本**：`npx @hankchen/infra@<版本> skill add <名...>` 安装指定版本（如 `npx @hankchen/infra@0.2.0 skill add dev-spec`），锁文件记录实际安装的版本号，团队以此对齐同一版本。
 
+## 卸载技能（remove/rm）
+
+卸载以 `.infra-lock.json` 记账为准（「是我装的」判据）：`.agents/skills/<技能名>/` 实体目录、各 agent 目录软链与记账行**一次清干净**，不留悬空软链或脏账；无记账的名字整体拒卸并列出已装清单（`skill ls` 查看），不会误删自建内容；agent 目录软链只清确属软链的（悬空软链仍是软链，照删），被使用者替换为真实文件/目录的占位记冲突跳过、绝不删非软链内容。
+
+```bash
+npx @hankchen/infra skill remove dev-spec            # 免交互卸载指定技能
+npx @hankchen/infra skill remove dev-spec,dev-plan   # 逗号分隔多个（空格分隔亦可，混用均可）
+npx @hankchen/infra skill remove --all               # 免交互卸载全部已装技能
+```
+
+无参跑 `skill remove` 进已装技能交互勾选（与安装同款空格勾选、回车确认；Ctrl-C 取消或空选确认即退出，不动任何落盘）。别名 `rm` 与 `remove` 行为逐字节一致（`skill rm dev-spec` 等价上行首条）。
+
+## 清单视图（list/ls、list-remote/ls-remote）
+
+已装面与可装面各一条纯读命令，对照着做补装/升级决策；两条都零落盘：
+
+```bash
+npx @hankchen/infra skill list          # 列已装技能：按名排序 + 安装时间（别名 ls）
+npx @hankchen/infra skill list-remote   # 列包内可装技能全集：名 + 描述，与 add 菜单同源同序（别名 ls-remote）
+```
+
 npm 访问受限（内网、公司代理）时，先配镜像或代理再跑安装：
 
 ```bash
@@ -82,6 +103,27 @@ npx @hankchen/infra plugin add @hankchen/dsh-demo <另一包> --profile work   #
 
 - **`desktop` profile 装不了**：`desktop` 是官方保留 profile 名，官方 CLI 拒绝对其做插件管理；安装器在执行官方命令前同样拒装并说明。
 - **registry 访问受限**：插件安装链路比技能多三处 registry 访问（npx 拉 `@deepseek-ai/dsh`、装插件包、profile 依赖经 pnpm 安装）。内网、公司代理环境先按上方「npm 访问受限」配镜像或代理再跑。
+
+## 卸载插件（remove/rm）
+
+插件卸载与安装对称：经官方命令 `dsh plugin --profile <名> remove <包>` 转发，卸后对账（profile 的依赖行与 `dsh.profile.bundles` 行两落点都消失）才清 `.infra-lock.json` 账——dsh 侧状态不明时账面保留，不冒进。目标 profile 不用指定：默认由账面该插件记录自动定位。
+
+```bash
+npx @hankchen/infra plugin remove @hankchen/dsh-demo                  # 免交互卸载（profile 由账面定位）
+npx @hankchen/infra plugin remove @hankchen/dsh-demo --profile test   # 覆盖账面 profile 卸载
+npx @hankchen/infra plugin remove --all                               # 免交互卸载全部已装插件（逐条按各自账面 profile 卸）
+```
+
+无记账的名字整体拒卸并列出已装插件清单（`plugin ls` 查看）；无参跑 `plugin remove` 进已装插件交互勾选（确认摘要列「插件→profile」）。别名 `rm` 与 `remove` 行为逐字节一致。
+
+**已知边界**：`.infra-lock.json` 的 plugins 账面每名恰一条——同一插件装进多个 profile 时，账面只记最后一次套件安装（后装覆盖），卸载默认定位到该 profile；要卸其他 profile 里的同名插件，`--profile <名>` 覆盖是唯一显式出口。
+
+## 插件清单（list/ls、list-remote/ls-remote）
+
+```bash
+npx @hankchen/infra plugin list          # 列已装插件：按 profile 分组，名@版本 + 安装时间（别名 ls）
+npx @hankchen/infra plugin list-remote   # 列包内可装插件：正名 + 描述，与 add 菜单同源同序（别名 ls-remote）
+```
 
 ## 第 2 步：接入仓库
 
