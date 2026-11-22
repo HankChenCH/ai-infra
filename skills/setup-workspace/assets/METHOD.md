@@ -49,7 +49,7 @@
 └── CHANGELOG.md                # 懒创建，仅需要发布流程的项目
 ```
 
-三条总原则：机器物与人文物分家（`.sdlc/` vs `docs/`）；流程产物按价值是否越过终态分档归置——知识档（need、spec、design、adr、research、standards）进库永久留存，过程档（ticket、review、acceptance、overview）过程中盘上存在、被 `.gitignore` 排除、不进任何提交，验收通过后随蒸馏清扫删除——审计链主承载为 tracker 投影与源码提交 `[#NNNN]` 引用；可升级不覆盖（setup 幂等重跑，按所有权表决定覆盖/保留/补缺）。`src/` 或其他源码目录——无论仓库实际布局如何——setup 永不触碰。
+三条总原则：机器物与人文物分家（`.sdlc/` vs `docs/`）；流程产物按价值是否越过终态分档归置——知识档（need、spec、design、adr、research、standards）进库永久留存，过程档（ticket、review、acceptance、overview）过程中盘上存在、被 `.gitignore` 排除、不进任何提交，验收通过后随蒸馏清扫删除——审计链主承载为 tracker 投影（评审/验收经 spec 名义归属挂对应聚合单评论）与源码提交 `[#NNNN]` 引用（票审计留痕 = commit 引用）；可升级不覆盖（setup 幂等重跑，按所有权表决定覆盖/保留/补缺）。`src/` 或其他源码目录——无论仓库实际布局如何——setup 永不触碰。
 
 **目录懒创建**：setup 只建 `.sdlc/` 与 `docs/`，九个产物目录由第一个产物落盘时创建，不留 `.gitkeep`；`designs/` 产物另含界面原型子目录 `designs/assets/<design-id>/`（design-\* 述标交付落点，知识档进仓库）。
 
@@ -77,7 +77,7 @@
 ### 4.3 明确的"不做"
 
 - 不设 `.scratch/` 草稿区：草稿就是 `status: draft` 的正式产物，杜绝第二真相源。
-- 不 gitignore 知识档、不跟踪过程档：归置分档——知识档进库永久留存，过程档被 `.gitignore` 排除、验收后蒸馏清扫删除，审计链主承载为 tracker 投影与源码提交 `[#NNNN]` 引用。
+- 不 gitignore 知识档、不跟踪过程档：归置分档——知识档进库永久留存，过程档被 `.gitignore` 排除、验收后蒸馏清扫删除，审计链主承载为 tracker 投影（评审/验收挂聚合单评论）与源码提交 `[#NNNN]` 引用（票审计留痕 = commit 引用）。
 - METHOD.md 不放产物模板：模板内嵌在写产物的技能里。
 - 门禁只管有真实代价的事：分支名等约定不进 check.sh。
 
@@ -133,18 +133,18 @@ publish 的投影路径与受理面全在此节定义；各技能 publish 步骤
 
 **MCP 路径发现链**（Codeup）：组织经 `get_current_organization_info` 发现；空间坐标优先取 config.sh `TRACKER_REPO`，未配置则 `search_projects` 按仓库名与项目自定义码自动匹配——唯一命中直接用，多命中列出候选名问人，零命中问人，选定后回写 config.sh `TRACKER_REPO` 记忆化（config.sh 归用户所有，回写可删）；类型经 `get_work_item_types(category=Req)` 取 defaultType 项；负责人经 `get_current_user` 取当前用户。
 
-**投影受理面**（两路径同口径；GitHub/GitLab 腿维持全产物独立 issue 口径不变）：
+**投影受理面**（两路径同口径；三腿统一聚合口径——一次需求开发 = 远端一个聚合单，时间线不可变，演进一律追加评论，spec 20261122-cda7）：
 
 | 产物 | 形态 |
 |---|---|
-| need | 新建 Codeup 需求单（category=Req，标题 = 产物一级标题） |
-| spec / design / adr / research（文件名带 need 谱系前缀） | 对应需求单下追加 MARKDOWN 评论（正文首行盘上指针行 + 产物全文，超 60000 字节截断并注记） |
-| 票与过程档（tickets / reviews / acceptance / overviews） | 不投，stderr 说明「过程档不入云效」 |
-| 无 need 谱系前缀的独立知识档 | 不投，stderr 说明「无 need 谱系」 |
+| need | 新建聚合单（Codeup 需求单 category=Req；GitHub/GitLab issue），标题 = 产物一级标题 |
+| spec / design / adr / research（文件名带 need 谱系前缀） | 对应聚合单下追加评论（正文首行盘上指针行 + 产物全文，超 60000 字节截断并注记；Codeup 为 MARKDOWN 评论） |
+| review / acceptance / overview（文件名带 spec 名义归属前缀） | 经定位链（specID → 盘上 spec 文件名 need 前缀 → 账本需求单行）解析后对应聚合单下追加评论；仅 GitHub/GitLab 腿受理，Codeup 腿过程档不入云效 |
+| 票（tickets）与无 need 谱系前缀的独立知识档 | 不投，stderr 说明——票审计留痕 = commit 引用（源码提交 `[#NNNN]`）；Codeup 腿说明「过程档不入云效」「无 need 谱系」 |
 
-**幂等共账**：两路径共用映射文件（`.sdlc/trackers/<tracker>.map` 三字段：盘上相对路径 / 工作项标识 / 对象 URL）；知识档行第二列记其承载 need 的工作项标识（评论形态）；同产物重复投影一律追加评论不新建。
+**幂等共账**：两路径共用映射文件（`.sdlc/trackers/<tracker>.map` 三字段：盘上相对路径 / 对象标识 / 对象 URL）；need 行第二列恒记自身对象标识（两代语义同构），评论形态行（知识档与 GitHub/GitLab 腿的过程档）第二列记其承载需求单的对象标识、第三列留空；同产物重复投影一律追加评论不新建；行已存在不重复记账、旧代际行不回改不迁移，评论定位恒走账本需求单行（spec 20261122-cda7）。
 
-**终态关闭**：产物 frontmatter `status` ∈ GLOSSARY 终态集合时同步关闭平台投影对象——done / fulfilled / passed / accepted / superseded / approved / reviewed / reconstructed → GitHub/GitLab completed、Codeup 已完成（内置状态 100014）；rejected → not_planned、Codeup 已取消（141230）。Codeup REST 适配器直接用内置状态 ID（不做运行时工作流查询，对应工作流查询端点未核验）；MCP 路径投影前经 get_work_item_workflow 按 nameEn（Done / Canceled）解析状态标识，未命中回落内置 ID。关闭失败与投影失败同款警告跳过；已关再关的非零按失败留痕，幂等无害。状态由技能序列先落盘后 publish，适配器只读 frontmatter 不做状态推断；research 无 status 行不命中终态集。
+**终态关闭**：触发面仅 need 形态产物——聚合单代表整次需求开发，随 need 自身 frontmatter `status` ∈ GLOSSARY 终态集合同步关闭平台投影对象，知识档与过程档评论不触发关闭（三腿同构，spec 20261122-cda7）——done / fulfilled / passed / accepted / superseded / approved / reviewed / reconstructed → GitHub/GitLab completed、Codeup 已完成（内置状态 100014）；rejected → not_planned、Codeup 已取消（141230）。Codeup REST 适配器直接用内置状态 ID（不做运行时工作流查询，对应工作流查询端点未核验）；MCP 路径投影前经 get_work_item_workflow 按 nameEn（Done / Canceled）解析状态标识，未命中回落内置 ID。关闭失败与投影失败同款警告跳过；已关再关的非零按失败留痕，幂等无害。状态由技能序列先落盘后 publish，适配器只读 frontmatter 不做状态推断；research 无 status 行不命中终态集。
 
 ## 8. config.sh 字段参考
 

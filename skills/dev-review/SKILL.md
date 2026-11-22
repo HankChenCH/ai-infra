@@ -71,11 +71,12 @@ description: 对当前分支上已实现的工单做双轴代码评审——标�
 
 ## 4. 出口门禁（全部通过才算完）
 
-1. 运行 `.sdlc/check.sh claim review <slug>` 取号（slug 用 ASCII 小写短横线）——
-   返回占位文件路径，号由入口原子分配、全历史唯一；评审覆盖的是工单集合（父为
-   过程档），文件名不带谱系前缀。写评审报告正文覆盖占位文件（模板见下，
-   frontmatter `id` 填文件名的 ID 段），运行 `.sdlc/check.sh validate <占位路径>`
-   必须通过。
+1. 运行 `.sdlc/check.sh claim review <slug> spec <spec-ID>` 取号（slug 用 ASCII
+   小写短横线）——返回占位文件路径，号由入口原子分配、全历史唯一；spec 为**名义
+   归属**（文件名带 `spec<父ID>-` 谱系前缀，供投影聚合单定位链解析；跨 spec 真实
+   覆盖面仍由下方 frontmatter `tickets:` 如实声明，归属任选被覆盖票的主 spec）。
+   写评审报告正文覆盖占位文件（模板见下，frontmatter `id` 填文件名的 ID 段），
+   运行 `.sdlc/check.sh validate <占位路径>` 必须通过。
 2. **各轴阻断均为零** → 报告 `status: approved`，然后按模式分岔：
    - **单票模式**：**立即用 Skill 工具调用 dev-ship** 准备 PR——评审通过不需要
      用户批准，合并才需要。dev-ship 未安装 → 停下说明，建议先完成 setup-workspace

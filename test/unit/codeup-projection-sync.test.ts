@@ -1,4 +1,4 @@
-// 投影同步静态断言（spec 20261119-20b1，票 20261119-2521）。
+// 投影同步静态断言（spec 20261119-20b1，票 20261119-2521；v1.45 三腿聚合口径同批扩围：spec 20261122-cda7，票 20261122-4295）。
 //
 // 投影判定树单点在 METHOD「投影约定」节，各技能 publish 步骤只引用不复述；本文件守护
 // 文档面单点与分发副本一致性：METHOD §7.1 三级判定树 / MCP 发现链 / 受理面 / 终态映射、
@@ -60,7 +60,7 @@ test('GLOSSARY「投影」词条：双路径同口径形态与 codeup 终态关�
   for (const needle of [
     'METHOD「投影约定」',
     'Codeup MCP',
-    'need 建需求单（Req 类）',
+    'need 建需求单（Req 类',
     '已取消（141230）',
   ]) {
     assert.ok(glossary.includes(needle), `GLOSSARY「投影」词条应含 ${needle}`);
@@ -219,4 +219,50 @@ test('蓝图 v1.43 与 setup 侧：TRACKER=codeup 前置门修订齐备', () => 
     decisions.includes('TRACKER=codeup）且检测到 Codeup MCP'),
     '决策 1 MCP 优先分支应含 TRACKER=codeup 语境门',
   );
+});
+
+// ── v1.45：tracker 投影聚合口径三腿归一（need 20261122-f5fc / spec 20261122-cda7 / 票 20261122-4295）──
+// 期望值独立来源 = spec 20261122-cda7 实现决策 1–9 与验收场景 FR-8 字面契约（非实现推导）。
+
+test('分发副本逐字同文：github.sh / gitlab.sh 活本与 assets 分发副本', () => {
+  for (const leg of ['github', 'gitlab'] as const) {
+    const live = read(path.join('.sdlc', 'trackers', `${leg}.sh`));
+    const asset = read(path.join('skills', 'setup-workspace', 'assets', 'trackers', `${leg}.sh`));
+    assert.equal(asset, live, `${leg}.sh 活本与 assets 分发副本应逐字一致`);
+  }
+});
+
+test('METHOD §7.1：三腿统一聚合口径受理面，两腿分叉旧表述退役', () => {
+  const method = read(path.join('docs', 'METHOD.md'));
+  assert.ok(method.includes('三腿统一聚合口径'), '受理面应含三腿统一聚合口径话术');
+  assert.ok(method.includes('时间线不可变'), '受理面应含时间线不可变话术');
+  assert.ok(method.includes('spec 名义归属前缀'), '受理面应含名义归属定位链话术');
+  assert.ok(method.includes('触发面仅 need 形态'), '终态关闭应声明仅 need 触发面');
+  assert.ok(method.includes('审计留痕 = commit 引用'), '票审计留痕应转 commit 引用');
+  assert.equal(
+    method.includes('GitHub/GitLab 腿维持全产物独立 issue 口径不变'),
+    false,
+    '受理面不得残留两腿分叉旧口径',
+  );
+});
+
+test('GLOSSARY：投影词条三腿聚合口径齐备，「名义归属」词条在场', () => {
+  const glossary = read('GLOSSARY.md');
+  assert.ok(glossary.includes('三腿统一聚合口径'), '投影词条应含三腿聚合口径');
+  assert.ok(glossary.includes('edit-in-place 废止'), '投影词条应声明时间线不可变');
+  assert.ok(glossary.includes('**名义归属**'), 'GLOSSARY 应有名义归属词条');
+});
+
+test('蓝图 v1.45：聚合口径三腿归一修订记录齐备', () => {
+  const blueprint = read(path.join('docs', 'sdlc-skills-blueprint.md'));
+  assert.ok(blueprint.includes('v1.45 修订记录'), '蓝图应含 v1.45 修订记录');
+  assert.ok(blueprint.includes('版本 1.45'), '蓝图版本行应升至 1.45');
+  assert.ok(blueprint.includes('三腿统一聚合口径受理面'), '蓝图 §5.4 应含三腿统一受理面话术');
+});
+
+test('dev-review 取号：spec 名义归属父参数话术，旧无谱系话术退役', () => {
+  const skill = read(path.join('skills', 'dev-review', 'SKILL.md'));
+  assert.ok(skill.includes('claim review <slug> spec <spec-ID>'), 'dev-review 取号应带 spec 名义归属父参数');
+  assert.ok(skill.includes('名义'), 'dev-review 应说明名义归属语义');
+  assert.equal(skill.includes('文件名不带谱系前缀'), false, 'dev-review 不得残留无谱系旧话术');
 });
