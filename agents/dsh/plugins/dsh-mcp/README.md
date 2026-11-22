@@ -1,6 +1,11 @@
 # @hankchen/dsh-mcp
 
-dsh MCP 对话内管理插件：装进 dsh profile 即获得对话内增删启停 MCP server 的能力，全程不手写 Cordis patch YAML。
+dsh（DeepSeek Harness）的 MCP server 对话内管理插件：装进 profile（`~/.dsh/profiles/<名>/` 下的宿主配置单元）即可在对话里列出、添加、启停、移除 MCP server（接入会话的 Model Context Protocol 服务），全程不手写配置文件。
+
+## 要求
+
+- dsh ≥ `0.2.2-rc.2`：包声明 `engines.dsh`，装进更老版本的宿主会被版本校验拒绝。
+- 安装过程需要访问 npm registry；内网/代理环境见下方「网络要求」。
 
 ## 安装
 
@@ -10,7 +15,7 @@ dsh MCP 对话内管理插件：装进 dsh profile 即获得对话内增删启�
 npx @hankchen/infra
 ```
 
-选「插件」类型、勾选 `@hankchen/dsh-mcp`、选定目标 dsh profile；安装器转发官方安装命令，完成后对账两处落点（profile 的 package.json 依赖行 + `dsh.profile.bundles` 行）并记入 `.infra-lock.json`。
+选「插件」类型、勾选 `@hankchen/dsh-mcp`、选定目标 dsh profile；安装器转发官方安装命令，完成后自动核对两处安装落点。
 
 方式二：官方命令直装——
 
@@ -22,27 +27,98 @@ npx @deepseek-ai/dsh plugin --profile <名> add @hankchen/dsh-mcp
 
 ## 启用
 
-装进 profile 即启用，无额外开关：包自带 `cordis.patch.yml` 随 profile 加载，插入两行——官方 MCP 管理器 `@deepseek-ai/dsh-mcp-manager` 的补位挂载行（官方只在 Web/Desktop profile 预挂该管理器，headless/sdk/acp 自定义 profile 由本插件的挂载行补位；本插件不携带 manager 依赖副本，该模块的解析可用性由安装途径保证，见「已知边界」）与本插件模块。宿主加载本插件后即具备对话内管理入口（列含状态/添加/移除/启停）。
+装进 profile 即启用，无额外开关。宿主加载本插件后，三个使用入口（/mcp 命令、mcp_manage 工具、右栏面板）同时可用。
 
-## 凭据：用 `${credential:…}` 模板，不用明文
+## 使用方法
 
-server 条目的 `env` / `headers` / `command` / `args` / `cwd` / `url` 值支持 `${credential:REF}` 模板串引用凭据。添加 server 时优先用模板而非明文：模板串原样进清单，凭据展开与日志脱敏（失败诊断与工具输出中替换为 `[redacted]`）由官方运行时承担，密钥不落配置文件；明文密钥会直接写进 profile 的 `cordis.patch.yml`，能免则免。
+同一个管理能力有三个入口，任选其一；改动立即生效且持久保存（重启宿主后仍在）。
 
-## 已知边界
+### 入口一：会话里输入 /mcp 命令
 
-- **官方兼容星座未定（2026-11-18 核验，票 20261118-2d72）**：官方 `@deepseek-ai/dsh-mcp-manager` 0.2.2-rc.2+ 的 peer 精确钉同 rc 兄弟套件，要求宿主 dsh ≥ `0.2.2-rc.2`；官方 npm `latest` 标签仍是 `0.2.2-rc.1`（rc.2+ 已发布于 `next` 标签，`latest` 未跟进）。本插件因此声明 `engines.dsh >=0.2.2-rc.2`——装进 latest（rc.1）宿主 profile 会被版本声明显式拒绝，属预期 fail-loud 而非缺陷。官方发布兼容星座后无需改插件即可直装。（2026-11-19 补充：manager 解析版与运行时对齐是另一独立风险面，见下条——范围钉版不保证跨宿主成立，钉版策略修订归 ADR 通道。）
-- **manager 解析版必须与宿主运行时同 rc（2026-11-19 desktop 实证；插件已剥离依赖副本）**：宿主 boot 兼容门按 peer 精确钉同 rc 校验 manager，失败即**静默禁用 manager 行——连官方预挂行一起**。事故形态：本插件曾以 `dependencies` 携带 `@deepseek-ai/dsh-mcp-manager: ^0.2.2-rc.2` 副本，该副本被 profile 的 `minimumReleaseAge` 供应链门解析到**最老满足版**（desktop 实解为 rc.2）而运行时已前移（desktop 实跑 rc.5），插件依赖副本劫持了官方预挂行的模块解析——现已改用可选 peer 声明（任何安装形态装完本插件，profile 依赖树不再出现 manager 副本），副本劫持路径就此消除；manager 版本供给责任移交安装途径（官方直装见下述恢复配方，初始化器装后核验另见套件文档）。症状三联征（排查同类故障仍适用）：`/mcp` 不被命令面板识别、右栏面板报 "no active Remote method exports this endpoint"、插件管理器视角本体行 fiber `pending`——此时 devtools console 无错、`--dump-config` 合成树一切正常，金标准证据只在 boot 日志：`dsh: disabling profile plugin row "mcp-manager": … incompatible with dsh …`。恢复配方：profile 的 `pnpm-workspace.yaml` 加 `overrides` 把 manager 钉到运行时同版 → 重装 profile 依赖 → 插件管理器开关重载（`plugin_manager set_plugin` 或 GUI）。
-- **合成树 ≠ 运行时状态，装成 ≠ 跑得起来**：`--dump-config` 里行 `disabled: false` 不代表运行时启用——插件管理器的持久开关与 boot 兼容门禁用都作用在合成层之上（兼容门禁用时开关报 `overridden`）；客户端 bundle 只随页面加载注入，Host 行激活经开关重载或重启 app 生效。
-- **`desktop` profile 直装已放行，初始化器仍拒装**：官方 CLI 对 desktop 的插件管理（`dsh plugin --profile desktop add/remove`）2026-11-19 实证放行（boot/dump 类 profile 级操作仍归 Electron app 独占）；套件初始化器按 2026-11-15 查证结论（need 339e F4）仍在执行前拒装 desktop（`RESERVED_PROFILES`），源码修订走正式通道，暂可经官方命令绕过。
-- **斜杠命令的值解析边界（2026-11-19 会话实测反馈）**：`/mcp add` 的选项值按空白切 token、不做引号剥离——含引号的值现在会在**添加期被拒收并提示**（失败不再延迟到连接期才暴露）；含空格/引号的复杂值请走 `mcp_manage` 工具或右栏面板入口（结构化传参），敏感值一律优先 `${credential:REF}` 模板。
-- **registry 访问受限**：插件安装链路比技能安装多三处 npm registry 访问（npx 拉官方 CLI `@deepseek-ai/dsh`、装本插件包、profile 依赖经 pnpm 安装）。内网、公司代理环境先配镜像或代理再安装：
+| 子命令 | 作用 |
+|---|---|
+| `/mcp list` | 列出全部 MCP server 与连接状态 |
+| `/mcp add stdio <名> <命令> [参数…] [--cwd=<目录>] [--env=<键=值>]…` | 添加本地命令型 server |
+| `/mcp add remote <名> <URL> [--header=<键=值>]…` | 添加远程端点型 server |
+| `/mcp remove <名>` | 移除 server |
+| `/mcp enable <名>` / `/mcp disable <名>` | 启用 / 停用（停用保留配置，断开连接） |
 
-  ```bash
-  # 走公共镜像源
-  npm config set registry https://registry.npmmirror.com
-  # 或走 HTTP 代理
-  npm config set proxy http://127.0.0.1:7890
-  npm config set https-proxy http://127.0.0.1:7890
-  ```
+示例（可复制）：
 
-  恢复默认：`npm config delete registry`、`npm config delete proxy`、`npm config delete https-proxy`。
+```bash
+/mcp add stdio fetch npx -y mcp-server-fetch
+/mcp add stdio github npx -y @modelcontextprotocol/server-github --env=GITHUB_TOKEN=${credential:githubToken}
+/mcp add remote docs https://mcp.example.com/mcp --header=Authorization=${credential:docsToken}
+/mcp disable fetch
+```
+
+两条边界：
+
+- server 名只允许字母、数字、`_`、`-`，1–32 个字符。
+- 命令选项值按空白切分、不做引号剥离：值里不能有空格，含引号的值会在添加时被拒收。含空格/引号的复杂值请用右栏面板或 `mcp_manage` 工具。
+
+### 入口二：直接用自然语言说
+
+对话里直接提需求即可，助手会调用本插件注册的 `mcp_manage` 工具完成同样操作：
+
+> 帮我接入 filesystem server：命令 npx，参数 -y @modelcontextprotocol/server-filesystem /tmp
+
+这个入口支持全部配置字段——除命令所及的传输类型、环境变量、请求头外，还包括命令入口没有的单次调用/启动/关闭超时与重连策略；也适合传含空格或引号的复杂值。
+
+### 入口三：客户端右栏「MCP Servers」面板
+
+打开 dsh 客户端右栏（侧边栏右侧）的「MCP Servers」页：
+
+- 点面板头部「添加」展开表单：选传输类型（stdio / streamable-http），填名称与对应字段，提交。
+- 每行 server 卡片上有状态徽章与操作按钮：
+  - 「启用 / 停用」「编辑」「移除」三个常驻按钮；
+  - 状态为「失败」的行多一个「重试」，状态为「已停用」的行多一个「探测」（探测只验证连通性，不改变条目）。
+- 「编辑」里传输类型不可改——换类型请移除后重新添加；环境变量 / 请求头每行一条 `键=值`，未改动的行（含凭据模板串）保存时原样保留。
+
+面板总览——每个 server 一张行卡，右侧状态徽章（下例「已连接」含可用工具数），行内操作按钮：
+
+![右栏 MCP Servers 面板：行卡与状态徽章](./img/panel.png)
+
+点头部「添加」在清单上方展开表单，选传输类型（stdio / streamable-http）后填对应字段提交：
+
+![添加 server 表单](./img/panel-add-form.png)
+
+### 状态徽章含义
+
+| 徽章 | 含义 |
+|---|---|
+| 已连接 | 正常，标注可用工具数 |
+| 连接中 / 重连中 | 连接进行中（重连中带失败原因与重试进度） |
+| 等待凭据 | `${credential:…}` 引用的凭据缺失，带缺失详情 |
+| 失败 | 连接失败（加载/清理等），带失败原因，可「重试」 |
+| 已停用 | 配置保留、连接已断开，可「探测」或重新启用 |
+| 已关闭 | 连接已正常关闭 |
+
+## 凭据：用 `${credential:REF}` 模板，不用明文
+
+server 条目的 `env` / `headers` / `command` / `args` / `cwd` / `url` 的值都支持 `${credential:REF}` 模板串引用凭据。添加 server 时优先用模板而非明文：模板串原样进配置，凭据展开与日志脱敏由官方运行时承担，密钥不落配置文件；明文密钥会直接写进 profile 配置，能免则免。
+
+## 常见问题
+
+- **装完右栏没有「MCP Servers」页，或 `/mcp` 不被识别**：重启客户端 app，或在插件管理器里把本插件关一次再开。面板资源随页面加载注入，装完当下的页面不会自动补载。
+- **移除后列表里还留着一条「非配置条目」**：条目配置已删、后台清理未完成，重启宿主后消失，无需处理。
+- **想装进 desktop profile**：套件初始化器目前拒绝安装 desktop（保留名单内），可经官方命令直装：`dsh plugin --profile desktop add @hankchen/dsh-mcp`。
+- **`/mcp` 报「mcp-manager 提供者未在场或未激活」**：属宿主组合故障，排查步骤见 [MAINTAINER.md](./MAINTAINER.md)。
+
+## 网络要求
+
+安装链路需要访问 npm registry。内网、公司代理环境先配镜像或代理再安装：
+
+```bash
+# 走公共镜像源
+npm config set registry https://registry.npmmirror.com
+# 或走 HTTP 代理
+npm config set proxy http://127.0.0.1:7890
+npm config set https-proxy http://127.0.0.1:7890
+```
+
+恢复默认：`npm config delete registry`、`npm config delete proxy`、`npm config delete https-proxy`。
+
+---
+
+维护者向内容（实现决策、已知边界、故障排查与恢复配方）见 [MAINTAINER.md](./MAINTAINER.md)，该文件不随 npm 包分发。
