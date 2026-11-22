@@ -20,7 +20,8 @@ const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const readSource = (rel: string): string => fs.readFileSync(path.join(packageRoot, rel), 'utf8');
 
 // 安装内核模块清单（票 20261116-1875 归位十模块；readiness 由票 20261119-9bd3 就绪核验入列；
-// skill-uninstall 由票 20261122-bdb8 技能卸载编排入列）
+// skill-uninstall 由票 20261122-bdb8 技能卸载编排入列；plugin-uninstall 由票 20261122-0204
+// 插件卸载编排入列）
 const KERNEL_MODULES = [
   'agent-dirs',
   'asset-map',
@@ -31,6 +32,7 @@ const KERNEL_MODULES = [
   'lockfile',
   'menu',
   'plugin-install',
+  'plugin-uninstall',
   'readiness',
   'reconcile',
   'skill-uninstall',
