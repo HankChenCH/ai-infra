@@ -1,8 +1,9 @@
 ---
 id: 20261122-81e9
 need: 20261122-6d44
-status: draft
+status: analyzed
 created: 2026-11-22
+analyzed: 2026-11-22
 ---
 # 命令行剩余动词（卸载与清单）系统分析：账本驱动的资产增删查
 
