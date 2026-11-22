@@ -7,9 +7,11 @@
 // 保序去重——与旧 --skills/--plugins 值语义完全同构（空格 variadic + 逗号双收为拍板 D6 扩展），
 // 如 `skill add a b,c d` → [a, b, c, d]、`skill add a,a` → [a]。
 
-// spec 契约原文：非 TTY 交互守卫（skill add 与 plugin add 同一条文案，含三条命令用法指引）。
+// spec 契约原文：非 TTY 交互守卫（skill add/remove、plugin add/remove 四交互动词共用的
+// 一条文案；spec 20261122-edb2 起同时列举 add 与 remove 主形态，票 20261122-bdb8 立、
+// 票 20261122-0204 补 plugin remove 形态）。
 export const ERR_INTERACTIVE_TTY =
-  '交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all 或 plugin add <名...> --profile <名>';
+  '交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all、skill remove <名...>、skill remove --all、plugin add <名...> --profile <名>、plugin remove <名...> 或 plugin remove --all';
 
 export function normalizeNames(tokens: string[]): string[] {
   const names: string[] = [];

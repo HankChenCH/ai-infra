@@ -18,7 +18,16 @@ need（澄清）→ spec（规格）→ plan（拆票）→ implement（实现�
 npx @hankchen/infra skill add    # 交互勾选要安装的技能（skill add <名...>、--all 免交互）
 ```
 
-然后在目标仓库的会话里运行 `/setup-workspace` 接门禁。顺序固定：先装技能、后接门禁；只装技能不接门禁，流程技能会在入口校验时拒绝并提示先运行 /setup-workspace。安装命令形态、插件安装、npm 镜像代理与 tracker 配置见[安装与接入](./docs/getting-started.md)。
+装卸对称，卸载与清单同在：`skill` 与 `plugin` 命令组各有 `remove`/`list`/`list-remote`（别名 `rm`/`ls`/`ls-remote`，行为一致）。卸载以 `.infra-lock.json` 记账为准——实体目录、agent 目录软链与记账一次清干净，无记账的名字不会被动（不误删自建内容）：
+
+```bash
+npx @hankchen/infra skill rm dev-spec             # 免交互卸载已装技能（rm = remove）
+npx @hankchen/infra skill ls                      # 列已装技能（ls = list；ls-remote 列可装）
+npx @hankchen/infra plugin rm @hankchen/dsh-demo  # 卸载插件（profile 由账面定位）
+npx @hankchen/infra plugin ls                     # 列已装插件（按 profile 分组）
+```
+
+然后在目标仓库的会话里运行 `/setup-workspace` 接门禁。顺序固定：先装技能、后接门禁；只装技能不接门禁，流程技能会在入口校验时拒绝并提示先运行 /setup-workspace。安装与卸载命令形态、插件安装、npm 镜像代理与 tracker 配置见[安装与接入](./docs/getting-started.md)。
 
 一轮最小闭环：
 
@@ -30,7 +39,7 @@ npx @hankchen/infra skill add    # 交互勾选要安装的技能（skill add <�
 
 | 文档 | 说明 |
 |---|---|
-| [docs/getting-started.md](./docs/getting-started.md) | **安装与接入**：技能/插件安装命令、npm 镜像代理、接入后的工作区、check.sh 子命令 |
+| [docs/getting-started.md](./docs/getting-started.md) | **安装与接入**：技能/插件安装与卸载命令、清单视图、npm 镜像代理、接入后的工作区、check.sh 子命令 |
 | [docs/design-rationale.md](./docs/design-rationale.md) | **设计动机与特色**：要解决的三种失控、四层防线、七个特色设计、致谢 |
 | [docs/skills.md](./docs/skills.md) | **技能清单**：31 个技能的分组职责表 |
 | [docs/maintainer-guide.md](./docs/maintainer-guide.md) | **维护者指南**：仓库结构、src 模块、开发命令与类型硬约束、已知坑、发布流程 |

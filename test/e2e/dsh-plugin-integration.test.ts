@@ -153,6 +153,29 @@ function runInstallCli(projectRoot: string, dshHome: string, pkgName = PKG) {
   };
 }
 
+// CLI 新命令面卸载（plugin rm，账面定位 profile；npx 回退形态真实拉官方）。
+// 卸载与安装同款硬顶：官方命令经 npx 冷启动（装侧已暖缓存时会快，但顶值取同款保守值）。
+function runRemoveCli(projectRoot: string, dshHome: string, pkgName = PKG) {
+  const result = spawnSync(
+    process.execPath,
+    [BIN, 'plugin', 'rm', pkgName],
+    {
+      cwd: projectRoot,
+      encoding: 'utf8',
+      timeout: INSTALL_TIMEOUT_MS,
+      maxBuffer: 16 * 1024 * 1024,
+      env: { ...process.env, DSH_HOME: dshHome, PATH: integrationPath() },
+    },
+  );
+  return {
+    code: result.status,
+    signal: result.signal,
+    error: result.error,
+    stdout: result.stdout ?? '',
+    stderr: result.stderr ?? '',
+  };
+}
+
 function readProfilePkg(dshHome: string) {
   return JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', PROFILE, 'package.json'), 'utf8'));
 }
@@ -344,6 +367,69 @@ test(`[FR-1|集成级] ${PKG} 经 plugin add 真装进测试 profile 并真启�
   assert.deepEqual(Object.keys(lockfileAfter.plugins), [PKG], '重复安装后锁文件无重复条目');
   assert.equal(lockfileAfter.plugins[PKG].version, depRange);
   assert.equal(lockfileAfter.plugins[PKG].profile, PROFILE);
+});
+
+// —— [FR-2|集成级|承载票 20261122-0204] 真装后真卸：profile 两落点真实消失 + 锁文件清账 ——
+// 真实协作者 = 官方 @deepseek-ai/dsh 的 `dsh plugin --profile <名> remove <包>`（spec
+// 「plugin 卸载编排」的官方命令形态，本用例即其真实链路证明）：装侧真装（与 FR-1 同链）、
+// 卸侧真卸，官方写什么删什么由官方决定——断言「两落点消失」语义而非官方删行细节。
+// 不核 node_modules 残留（spec 假设 A4 维持：依赖目录归官方命令管理）。
+// 前置门跳过纪律（docs/standards/node-test-skip-gate.md）：复用 assertGate（node floor +
+// 集成 PATH 无 dsh + registry 版本对账 + pnpm 可用），门不过显式报因跳过、不伪绿。
+
+test(`[FR-2|集成级] ${PKG} 真装后 plugin rm 真卸：profile 两落点真实消失、锁文件清账且骨架保留`, (t) => {
+  if (!assertGate(t)) return;
+
+  // —— 装段：临时项目 + 临时 DSH_HOME，plugin add 真装（锁文件记账为卸侧账面来源）——
+  const projectRoot = makeTempDir(t, 'infra-integration-proj-');
+  spawnSync('git', ['init', '-q'], { cwd: projectRoot });
+  const dshHome = makeTempDir(t, 'infra-integration-dshhome-');
+
+  const installed = runInstallCli(projectRoot, dshHome);
+  assert.equal(
+    installed.code,
+    0,
+    `真装应成功退出（${installed.error?.message ?? `signal ${installed.signal}`}）：${installed.stdout}${installed.stderr}`,
+  );
+  // 装侧基线：两落点在（真实链路锚点，卸侧断言以此为对照）
+  const profilePkgBefore = readProfilePkg(dshHome);
+  assert.ok(typeof profilePkgBefore.dependencies?.[PKG] === 'string' && profilePkgBefore.dependencies[PKG].length > 0, '装侧依赖行应在');
+  assert.ok(profilePkgBefore.dsh?.profile?.bundles?.includes(PKG), '装侧 bundles 行应在');
+  assert.deepEqual(Object.keys(readLockfile(projectRoot).plugins), [PKG], '装侧锁文件应记账');
+
+  // —— 卸段：plugin rm 真卸（账面定位 profile，集成 PATH 无 dsh → npx 回退形态真实执行）——
+  const removed = runRemoveCli(projectRoot, dshHome);
+  assert.equal(
+    removed.code,
+    0,
+    `真卸应成功退出（${removed.error?.message ?? `signal ${removed.signal}`}）：${removed.stdout}${removed.stderr}`,
+  );
+
+  // profile 两落点真实消失（官方删行语义为准：dependencies 无该依赖行、bundles 无该包名）
+  const profilePkgAfter = readProfilePkg(dshHome);
+  assert.equal(
+    profilePkgAfter.dependencies?.[PKG],
+    undefined,
+    `卸后依赖行应消失（实际：${JSON.stringify(profilePkgAfter.dependencies ?? {})}）`,
+  );
+  assert.equal(
+    profilePkgAfter.dsh?.profile?.bundles?.includes(PKG),
+    false,
+    `卸后 bundles 行应不含该包（实际：${JSON.stringify(profilePkgAfter.dsh?.profile?.bundles ?? [])}）`,
+  );
+
+  // 完成摘要：逐条列插件与 profile 并记对账结果（与 shim e2e 同款锚点，真实链路复验）
+  const summary = plainText(removed.stdout);
+  assert.ok(summary.includes(`已卸载插件${PKG}`), `完成摘要应列卸载插件：${removed.stdout}`);
+  assert.ok(summary.includes(`dshprofile${PROFILE}`), '完成摘要应记账面定位的 profile');
+  assert.ok(summary.includes('对账：依赖行+bundles行已消失'), '完成摘要应记对账结果');
+
+  // 锁文件清账且骨架保留（need FR-5：账行清空不等于头实体删除）
+  const lockfile = readLockfile(projectRoot);
+  assert.deepEqual(lockfile.plugins, {}, '锁文件 plugins 应清账');
+  assert.equal(lockfile.package, '@hankchen/infra', '骨架 package 保留');
+  assert.match(lockfile.packageVersion, /^\d+\.\d+\.\d+/, '骨架 packageVersion 保留');
+  assert.deepEqual(lockfile.skills, {}, 'skills 记账为空对象（骨架保留）');
 });
 
 // —— [FR-5|集成级] manager 解析副本落点（评审 20261120-4f76 阻断 2 集成复核清单）——

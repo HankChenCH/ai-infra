@@ -57,3 +57,50 @@ export function reconcilePluginInstall({ profilePath, packageName }: {
   // 对账通过 = dependencies 依赖行已核存在，version 必为 string（undefined 已进 missing 并抛出）
   return { ok: true, version: version as string };
 }
+
+// 卸载后对账（spec 20261122-edb2 实现决策「plugin 卸载编排」）：两落点消失 = dependencies
+// 无该包依赖行 且 dsh.profile.bundles 无该包名；任一仍在 → 报错（官方命令可能未完成卸载，
+// dsh 侧状态不明时账面保留是安全默认——对称安装「对账失败不记账」）。profile 清单整体
+// 不存在（官方卸载连 profile 清单一并清掉）视为两落点已消失；清单在但不可解析仍报错。
+export interface ReconcileUninstallResult {
+  ok: true;
+}
+
+export function reconcilePluginUninstall({ profilePath, packageName }: {
+  profilePath: string;
+  packageName: string;
+}): ReconcileUninstallResult {
+  const pkgFile = path.join(profilePath, 'package.json');
+  let raw: string;
+  try {
+    raw = fs.readFileSync(pkgFile, 'utf8');
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+      return { ok: true };
+    }
+    throw new Error(
+      `卸载对账失败：profile 的 package.json 读不到（${pkgFile}，${err.message}）——dsh 侧状态不明，账面保留`,
+    );
+  }
+  let pkg: ProfilePackage;
+  try {
+    pkg = JSON.parse(raw);
+  } catch (err) {
+    throw new Error(`卸载对账失败：profile 的 package.json 不是合法 JSON（${pkgFile}，${err.message}）`);
+  }
+  const remaining: string[] = [];
+  if (pkg.dependencies?.[packageName] !== undefined) {
+    remaining.push('dependencies 依赖行');
+  }
+  const bundles = pkg.dsh?.profile?.bundles;
+  if (Array.isArray(bundles) && bundles.includes(packageName)) {
+    remaining.push('dsh.profile.bundles 清单行');
+  }
+  if (remaining.length > 0) {
+    throw new Error(
+      `卸载对账失败：包 ${packageName} 在 profile ${profilePath} 的 package.json 仍有落点——${remaining.join(' 与 ')}；` +
+        `官方命令可能未完成卸载，账面保留`,
+    );
+  }
+  return { ok: true };
+}
