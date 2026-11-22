@@ -39,7 +39,10 @@ const SHIM_RUNTIME_VERSION_RE = SHIM_RUNTIME_VERSION.replace(/[.*+?^${}()|[\]\\]
 // dependencies 追加依赖行（版本 = 仓库对应插件包当前版本，官方装的就是包的实际版本）、
 // dsh.profile.bundles 追加包名；装 @hankchen/dsh-mcp 时按官方 pnpm 语义把 manager 解析
 // 副本写进 profile 依赖树（版本 = DSH_SHIM_MANAGER_VERSION，缺省同 CLI 探测值 = 同 rc
-// 通过形态；'absent' 模拟缺副本）。dsh 与 npx shim 共用本实现。
+// 通过形态；'absent' 模拟缺副本）。票 20261122-0204 起 `plugin --profile <名> remove <包>`
+// 同款解析：按官方卸载语义删两落点（DSH_SHIM_REMOVE_FAIL_FOR=<包名> 模拟该包卸载非零
+// 退出；DSH_SHIM_REMOVE_NOOP=1 模拟成功退出但落点不动——对账失败形态）。dsh 与 npx shim
+// 共用本实现。
 // shebang 用测试进程的绝对 node 路径：npx 形态测试的 PATH 只有 shim 目录，env node 不可用。
 const SHIM_PLUGIN_VERSIONS = { [PKG]: PLUGIN_VERSION, [MCP]: MCP_VERSION };
 
@@ -60,10 +63,31 @@ if (argv.includes('--version')) {
 const idx = argv.indexOf('plugin');
 if (idx !== -1) {
   const profile = argv[idx + 2];
+  const verb = argv[idx + 3];
   const pkgName = argv[idx + 4];
   const dir = path.join(process.env.DSH_HOME, 'profiles', profile);
   fs.mkdirSync(dir, { recursive: true });
   const pkgFile = path.join(dir, 'package.json');
+  if (verb === 'remove') {
+    if (pkgName && pkgName === process.env.DSH_SHIM_REMOVE_FAIL_FOR) {
+      process.stderr.write('npm error simulated remove failure\\n');
+      process.exit(1);
+    }
+    if (process.env.DSH_SHIM_REMOVE_NOOP) {
+      process.exit(0);
+    }
+    if (fs.existsSync(pkgFile)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgFile, 'utf8'));
+      if (pkg.dependencies) {
+        delete pkg.dependencies[pkgName];
+      }
+      if (pkg.dsh && pkg.dsh.profile && pkg.dsh.profile.bundles) {
+        pkg.dsh.profile.bundles = pkg.dsh.profile.bundles.filter((b) => b !== pkgName);
+      }
+      fs.writeFileSync(pkgFile, JSON.stringify(pkg, null, 2));
+    }
+    process.exit(0);
+  }
   const pkg = fs.existsSync(pkgFile) ? JSON.parse(fs.readFileSync(pkgFile, 'utf8')) : { name: profile };
   const versions = ${JSON.stringify(SHIM_PLUGIN_VERSIONS)};
   pkg.dependencies = { ...(pkg.dependencies || {}), [pkgName]: versions[pkgName] || ${JSON.stringify(PLUGIN_VERSION)} };
@@ -760,4 +784,278 @@ test('[FR-6] plugin add @hankchen/dsh-mcp（探测失败）：警告 + 继续完
   assert.deepEqual(readShimCalls(shimLog), [['plugin', '--profile', 'dev', 'add', MCP], ['--version']]);
   const lockfile = readLockfileAt(project);
   assert.equal(lockfile.plugins[MCP].profile, 'dev', '安装应照常记账');
+});
+
+// ---------- [FR-2] plugin remove/rm 卸载全链（spec 20261122-edb2，票 20261122-0204）----------
+// 装→卸两落点一致（dependencies 依赖行、dsh.profile.bundles 行）+ 锁文件清账骨架保留
+// （FR-5）+ 拒卸/中止/对账失败三错误路径。期望值独立来源 = spec 验收场景原文形态字面。
+
+test('[FR-2] plugin rm 装后卸全链：shim 收到 remove 形态、两落点消失、锁文件清账且骨架保留、退出 0', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const before = readLockfileAt(project);
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'rm', PKG], env);
+  assert.equal(code, 0, `卸载应成功退出：${stderr}`);
+
+  // 执行体收到的命令形态（spec FR-2 场景原文形态：profile 与包名独立 argv 元素）
+  assert.deepEqual(readShimCalls(shimLog), [
+    ['plugin', '--profile', 'dev', 'add', PKG],
+    ['plugin', '--profile', 'dev', 'remove', PKG],
+  ]);
+
+  // profile 两落点消失（shim 按官方卸载语义删行）
+  const profilePkg = JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8'));
+  assert.equal(profilePkg.dependencies[PKG], undefined, '依赖行应消失');
+  assert.deepEqual(profilePkg.dsh.profile.bundles, [], 'bundles 行应不含该包');
+
+  // 锁文件 plugins 清账；package/packageVersion/skills 骨架保留（FR-5：最后一次卸载后账全空）
+  const lockfile = readLockfileAt(project);
+  assert.deepEqual(lockfile.plugins, {}, '锁文件 plugins 应清账');
+  assert.equal(lockfile.package, before.package);
+  assert.equal(lockfile.packageVersion, before.packageVersion, '骨架 packageVersion 保留');
+  assert.deepEqual(lockfile.skills, {}, 'skills 记账为空对象（骨架保留）');
+
+  const output = plainText(stdout + stderr);
+  assert.match(output, new RegExp(`已卸载插件${PKG.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}←dshprofiledev`), '摘要应列插件与 profile');
+  assert.match(output, /对账：依赖行\+bundles行已消失/, '摘要应记对账结果');
+  assert.match(output, /记账：\.infra-lock\.json/, '摘要应含记账更新行');
+});
+
+test('[FR-2] plugin rm 未记账名：✗ 含该名与已装插件→profile 清单并指路 plugin ls、退出 1、零落盘、shim 零调用', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+  const removeLog = makeShimLog(t); // 卸载段换新日志：文件未建 = shim 零调用
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'rm', '@hankchen/no-such'], {
+    DSH_HOME: dshHome,
+    DSH_SHIM_LOG: removeLog,
+    PATH: `${shimDir}${path.delimiter}${process.env.PATH}`,
+  });
+  assert.equal(code, 1, '未记账名应失败退出');
+  assert.equal(stdout, '', '错误走 stderr，stdout 空');
+  assert.match(stderr, /@hankchen\/no-such/, '报错应点名未记账名');
+  assert.match(stderr, new RegExp(`已装：${PKG.replace('/', '\\/')} → dev`), '报错应列已装插件→profile 清单');
+  assert.match(stderr, /plugin ls/, '报错应指路 plugin ls');
+  assert.equal(fs.existsSync(removeLog), false, '拒绝路径不得执行官方命令');
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '拒绝路径零落盘');
+  assert.equal(JSON.parse(lockBefore).plugins[PKG].profile, 'dev', '已记账项不卸');
+});
+
+test('[FR-2] plugin remove --all 跨 profile 全卸：逐条按各自账面 profile、退出 0；再卸空账提示退 0 零落盘', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev', 'test']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  // 账 2 条跨 profile：PKG→dev、MCP→test（后装条目在账面各记各的 profile）
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  assert.equal(runCliIn(project, ['plugin', 'add', MCP, '--profile', 'test'], env).code, 0);
+  assert.equal(Object.keys(readLockfileAt(project).plugins).length, 2);
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'remove', '--all'], env);
+  assert.equal(code, 0, `全卸应成功退出：${stderr}`);
+  assert.deepEqual(readShimCalls(shimLog).slice(-2), [
+    ['plugin', '--profile', 'dev', 'remove', PKG],
+    ['plugin', '--profile', 'test', 'remove', MCP],
+  ], '应逐条按各自账面 profile 转发');
+  const devPkg = JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8'));
+  const testPkg = JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', 'test', 'package.json'), 'utf8'));
+  assert.equal(devPkg.dependencies[PKG], undefined, 'dev 落点应消失');
+  assert.equal(testPkg.dependencies[MCP], undefined, 'test 落点应消失');
+  assert.deepEqual(readLockfileAt(project).plugins, {}, '两账均清');
+  // plainText 已压掉空白：项数括注随行内口径（2项）锚定
+  assert.match(plainText(stdout + stderr), /卸载完成（2项）/, '摘要应记卸载项数');
+
+  // 再卸空账：提示退 0、零落盘、零官方调用（shim 日志不再新增行）
+  const callsBefore = readShimCalls(shimLog).length;
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+  const second = runCliIn(project, ['plugin', 'remove', '--all'], env);
+  assert.equal(second.code, 0, '空账 --all 应退 0（A1 拍板同构）');
+  assert.match(plainText(second.stdout + second.stderr), /没有已装插件可卸/, '空账应提示');
+  assert.equal(readShimCalls(shimLog).length, callsBefore, '空账路径不得执行官方命令');
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '空账路径不得改锁文件');
+});
+
+test('[FR-2] shim 模拟卸载非零退出：批量中止报已完成/未完成清单、已完成账面清理保留、失败项未动、退出 1', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  assert.equal(runCliIn(project, ['plugin', 'add', MCP, '--profile', 'dev'], env).code, 0);
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'rm', `${PKG},${MCP}`], {
+    ...env,
+    DSH_SHIM_REMOVE_FAIL_FOR: MCP, // 第二条失败
+  });
+  assert.equal(code, 1, '单条失败应中止退出 1');
+  const output = plainText(stdout + stderr);
+  assert.match(output, /卸载中止/, '报错应点名中止');
+  assert.match(output, /已完成：@hankchen\/dsh-demo/, '报错须含已完成清单');
+  assert.match(output, /未完成：@hankchen\/dsh-mcp/, '报错须含未完成清单');
+  // 调用数：装 PKG + 装 MCP（add + 就绪 --version 探测两笔）+ 卸 PKG + 卸 MCP（失败）= 5；
+  // 失败后不再有后续调用
+  assert.deepEqual(readShimCalls(shimLog).slice(-2), [
+    ['plugin', '--profile', 'dev', 'remove', PKG],
+    ['plugin', '--profile', 'dev', 'remove', MCP],
+  ], '最后两笔应为逐条卸载转发');
+  assert.equal(readShimCalls(shimLog).length, 5, '失败后不应继续执行后续官方命令');
+  const lockfile = readLockfileAt(project);
+  assert.deepEqual(Object.keys(lockfile.plugins), [MCP], '已完成项账面清理保留、失败项未动');
+  const profilePkg = JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8'));
+  assert.equal(profilePkg.dependencies[PKG], undefined, '已完成项两落点已消失');
+  assert.equal(profilePkg.dependencies[MCP], MCP_VERSION, '失败项落点未动');
+});
+
+test('[FR-2] shim 成功退出但两落点仍在：对账失败报错、账面保留、退出 1', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'rm', PKG], { ...env, DSH_SHIM_REMOVE_NOOP: '1' });
+  assert.equal(code, 1, '对账失败应退出 1');
+  // 内核失败经 spinner + clack.log.error 呈现（stdout 通道；与安装失败路径同流）
+  const output = plainText(stdout + stderr);
+  assert.match(output, /卸载对账失败/, '报错应点名卸载对账失败');
+  assert.match(output, /dsh\.profile\.bundles/, '报错应点名仍在的落点');
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '对账失败账面保留');
+});
+
+test('[FR-2] 非 TTY plugin remove 无参：守卫文案（更新版含 plugin remove 形态）报错、退出 1、零落盘', (t) => {
+  const project = makeProject(t);
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'remove'], {});
+  assert.equal(code, 1, '非 TTY 无参应失败退出');
+  assert.equal(stdout, '');
+  assert.equal(stderr, ERR_TTY_GUARD);
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false, '守卫路径不得写锁文件');
+});
+
+test('[FR-4] plugin remove --help 打印命令级帮助：用法与示例；plugin 无动词帮助列出 remove 动词', (t) => {
+  const project = makeProject(t);
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'remove', '--help'], {});
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  for (const needle of ['plugin remove [名...]', '--all', '--profile <名>', 'plugin remove @hankchen/dsh-demo']) {
+    assert.ok(stdout.includes(needle), `plugin remove --help 应含 ${needle}`);
+  }
+  const bare = runCliIn(project, ['plugin'], {});
+  assert.equal(bare.code, 0);
+  assert.ok(bare.stdout.includes('remove'), 'plugin 命令帮助应列出 remove 动词');
+});
+
+test('[FR-4] 顶层 --help 含 plugin remove/rm 用法形态', (t) => {
+  const project = makeProject(t);
+  const { code, stdout } = runCliIn(project, ['--help'], {});
+  assert.equal(code, 0);
+  for (const needle of [
+    'npx @hankchen/infra plugin rm @hankchen/dsh-demo',
+    'plugin remove [名...] [--all]',
+  ]) {
+    assert.ok(stdout.includes(needle), `顶层帮助应含 ${needle}`);
+  }
+});
+
+// ---------- [FR-2] plugin remove 交互路径（PTY，单层：已装插件勾选，账面定位 profile）----------
+
+const REMOVE_PLUGIN_PICK_PATTERN = '选择要卸载的插件';
+
+test('[FR-2] PTY plugin remove 无参勾选 2 项（账面 profile 不同）：确认摘要列「插件→profile」、执行与所选一致', async (t) => {
+  const interactiveProject = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev', 'test']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+  assert.equal(runCliIn(interactiveProject, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  assert.equal(runCliIn(interactiveProject, ['plugin', 'add', MCP, '--profile', 'test'], env).code, 0);
+
+  // 菜单按名排序两项（demo 在前、mcp 在后）：SPACE 勾选当前项 → DOWN 移动 → SPACE 勾选 →
+  // ENTER 确认。账面为源（A2 拍板）：无独立 profile 选择步，仅一层插件多选
+  const picked = await runInteractiveIn(
+    interactiveProject,
+    [' ', '\x1b[B', ' ', '\r'],
+    env,
+    [REMOVE_PLUGIN_PICK_PATTERN],
+    'plugin remove',
+  );
+  assert.equal(picked.code, 0, `交互卸载应成功退出：${picked.output}`);
+  const plain = plainText(picked.output);
+  assert.ok(
+    plain.includes(`已选2项：${PKG}→dev、${MCP}→test`),
+    `确认摘要应列「插件→profile」：${plain}`,
+  );
+  assert.equal(plain.includes('选择目标dshprofile'), false, '不得渲染独立 profile 选择步（A2 拍板）');
+  assert.deepEqual(readShimCalls(shimLog).slice(-2), [
+    ['plugin', '--profile', 'dev', 'remove', PKG],
+    ['plugin', '--profile', 'test', 'remove', MCP],
+  ], '执行应与所选一致（各按账面 profile）');
+  assert.deepEqual(readLockfileAt(interactiveProject).plugins, {}, '两项账面均清');
+});
+
+test('[FR-2] PTY plugin remove 勾选后取消（Ctrl-C）：退出 0 且零落盘、零官方调用', async (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+  const profileBefore = fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8');
+  const removeLog = makeShimLog(t);
+
+  const picked = await runInteractiveIn(
+    project,
+    ['\x03'],
+    { DSH_HOME: dshHome, DSH_SHIM_LOG: removeLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` },
+    [REMOVE_PLUGIN_PICK_PATTERN],
+    'plugin remove',
+  );
+  assert.equal(picked.code, 0, '取消应正常退出（现行交互纪律）');
+  assert.equal(fs.existsSync(removeLog), false, '取消不得执行官方命令');
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '取消不得改锁文件');
+  assert.equal(
+    fs.readFileSync(path.join(dshHome, 'profiles', 'dev', 'package.json'), 'utf8'),
+    profileBefore,
+    '取消不得动 profile 落点',
+  );
+});
+
+test('[FR-2] PTY plugin remove 确认空选：退出 0 且零落盘、零官方调用', async (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const shimLog = makeShimLog(t);
+  const env = { DSH_HOME: dshHome, DSH_SHIM_LOG: shimLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+  const removeLog = makeShimLog(t);
+
+  const picked = await runInteractiveIn(
+    project,
+    ['\r'],
+    { DSH_HOME: dshHome, DSH_SHIM_LOG: removeLog, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` },
+    [REMOVE_PLUGIN_PICK_PATTERN],
+    'plugin remove',
+  );
+  assert.equal(picked.code, 0, '空选确认应正常退出（现行交互纪律）');
+  assert.equal(fs.existsSync(removeLog), false, '空选不得执行官方命令');
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '空选不得改锁文件');
 });
