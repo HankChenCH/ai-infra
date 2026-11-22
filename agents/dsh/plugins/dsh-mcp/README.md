@@ -75,9 +75,13 @@ npx @deepseek-ai/dsh plugin --profile <名> add @hankchen/dsh-mcp
   - 状态为「失败」的行多一个「重试」，状态为「已停用」的行多一个「探测」（探测只验证连通性，不改变条目）。
 - 「编辑」里传输类型不可改——换类型请移除后重新添加；环境变量 / 请求头每行一条 `键=值`，未改动的行（含凭据模板串）保存时原样保留。
 
-<!-- 截图占位 1：右栏「MCP Servers」面板，含至少一行已连接 server（展示行卡、状态徽章与操作按钮）。截图文件放本目录 img/ 下并加入 package.json 的 files 清单（npm 白名单外文件不随包分发，缺了介绍页会裂图），然后取消下行注释：
-![右栏 MCP Servers 面板](./img/panel.png)
--->
+面板总览——每个 server 一张行卡，右侧状态徽章（下例「已连接」含可用工具数），行内操作按钮：
+
+![右栏 MCP Servers 面板：行卡与状态徽章](./img/panel.png)
+
+点头部「添加」在清单上方展开表单，选传输类型（stdio / streamable-http）后填对应字段提交：
+
+![添加 server 表单](./img/panel-add-form.png)
 
 ### 状态徽章含义
 

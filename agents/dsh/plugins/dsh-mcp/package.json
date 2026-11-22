@@ -11,7 +11,8 @@
   "files": [
     "index.ts",
     "cordis.patch.yml",
-    "client"
+    "client",
+    "img"
   ],
   "scripts": {
     "prepack": "node scripts/prepack.ts",
