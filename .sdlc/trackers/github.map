@@ -301,3 +301,13 @@ docs/tickets/spec20261120-fedf-20261120-8594-design-analysis-core.md	317	https:/
 docs/tickets/spec20261120-fedf-20261120-ca88-design-analysis-downstream.md	318	https://github.com/HankChenCH/ai-infra/issues/318
 docs/acceptance/spec20261120-fedf-20261121-22fc-dev-design-dual-form.md	320	https://github.com/HankChenCH/ai-infra/issues/320
 docs/tickets/spec20261119-20b1-20261121-6089-mcp-path-tracker-gate.md	322	https://github.com/HankChenCH/ai-infra/issues/322
+docs/specs/20261122-3b77-dsh-mcp-empty-state-add.md	324	https://github.com/HankChenCH/ai-infra/issues/324
+docs/tickets/spec20261122-3b77-20261122-a559-dsh-mcp-empty-state-add.md	325	https://github.com/HankChenCH/ai-infra/issues/325
+docs/needs/20261122-6d44-infra-cli-remove-list-verbs.md	327	https://github.com/HankChenCH/ai-infra/issues/327
+docs/designs/need20261122-6d44-20261122-81e9-infra-cli-verbs-analysis.md	328	https://github.com/HankChenCH/ai-infra/issues/328
+docs/specs/need20261122-6d44-20261122-edb2-infra-cli-remove-list.md	329	https://github.com/HankChenCH/ai-infra/issues/329
+docs/tickets/spec20261122-edb2-20261122-bdb8-skill-remove-verbs.md	330	https://github.com/HankChenCH/ai-infra/issues/330
+docs/tickets/spec20261122-edb2-20261122-0204-plugin-remove-verbs.md	331	https://github.com/HankChenCH/ai-infra/issues/331
+docs/tickets/spec20261122-edb2-20261122-64e9-list-verbs-contract.md	332	https://github.com/HankChenCH/ai-infra/issues/332
+docs/tickets/spec20261122-edb2-20261122-350f-docs-pack-reconcile.md	333	https://github.com/HankChenCH/ai-infra/issues/333
+docs/acceptance/spec20261122-3b77-20261122-fd7b-dsh-mcp-empty-state-add.md	334	https://github.com/HankChenCH/ai-infra/issues/334
