@@ -552,8 +552,18 @@ cmd_pre_push() {
   [ -n "$base" ] || die "找不到基准分支 ${BASE_REF}（本地与 origin 都没有）——检查 .sdlc/config.sh 的 BASE_REF"
   mb="$(git merge-base "$base" HEAD 2>/dev/null)" \
     || die "无法计算与 $BASE_REF 的 merge-base（当前 HEAD 不含该历史？）"
-  local subjects refs rc=0 d f st cov rv t
+  local subjects refs rc=0 d f st cov rv t origin_base
   subjects="$(git log --format=%s "$mb..HEAD")"
+  # 主干直推（HEAD == BASE_REF，如 trunk 上直接提交后 push）：merge-base 比较退化为
+  # 空集、implemented↔approved 评审覆盖核验空转（retro 0004 实证，受控复现坐实票
+  # 20261122-61d2）——此时改对 origin/<BASE_REF>..HEAD（即本次推送内容）做同款校验；
+  # origin 缺失或与本地基准一致（真无领先）时 subjects 仍空，行为不变。
+  if [ -z "$subjects" ] && [ "$base" = "$(git rev-parse HEAD 2>/dev/null)" ]; then
+    origin_base="$(git rev-parse --verify --quiet "refs/remotes/origin/$BASE_REF" || true)"
+    if [ -n "$origin_base" ] && [ "$origin_base" != "$base" ]; then
+      subjects="$(git log --format=%s "$origin_base..HEAD")"
+    fi
+  fi
   if [ -z "$subjects" ]; then
     info "✓ 分支无领先提交，pre-push 通过"
     return 0
