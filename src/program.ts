@@ -17,8 +17,8 @@ import { createSkillCommand } from './commands/skill/index.ts';
 import { resolveProgramContext } from './context.ts';
 import type { ProgramContext } from './context.ts';
 
-// 顶层帮助（命令面定稿）：skill add 与 plugin add 用法示例；不含旧旗标名（--skills/--plugins
-// 已退役，e2e 定稿断言守护）。
+// 顶层帮助（命令面定稿）：skill add / skill remove / plugin add 用法示例；不含旧旗标名
+//（--skills/--plugins 已退役，e2e 定稿断言守护）。
 export function renderTopHelp(): string {
   return `@hankchen/infra —— 套件资产初始化 CLI
 
@@ -27,10 +27,12 @@ export function renderTopHelp(): string {
   npx @hankchen/infra skill add                     # 交互勾选要安装的技能
   npx @hankchen/infra skill add --all               # 免交互安装全部技能
   npx @hankchen/infra@<semver> skill add <名...>    # 指定版本安装（锁文件记录该版本）
+  npx @hankchen/infra skill rm dev-spec             # 免交互卸载已装技能（实体+软链+记账）
   npx @hankchen/infra plugin add @hankchen/dsh-demo --profile dev   # 免交互安装插件到指定 dsh profile
 
 命令：
   skill add [名...] [--all]           安装技能；名字空格或逗号分隔均可，--all 全装，无参进交互勾选
+  skill remove [名...] [--all]        卸载已装技能（别名 rm）；--all 全卸，无参进交互勾选
   plugin add [名...] --profile <名>   安装插件进 dsh profile；无参进交互勾选
   -h, --help                          显示对应层级帮助
 
@@ -39,7 +41,9 @@ export function renderTopHelp(): string {
   - 对项目内已存在的 agent 目录（.claude、.zcode 等）建相对软链；不存在者跳过并列入完成摘要
   - 插件经宿主官方命令安装进指定 dsh profile（dsh 不在 PATH 自动改 npx @deepseek-ai/dsh），装后对账
   - 安装后在项目根写 .infra-lock.json 记账（包版本 + 逐技能指纹/逐插件版本与安装时间）
-  - 重跑本命令即按当前包内容刷新已装资产并更新锁文件，无重复堆积`;
+  - 重跑本命令即按当前包内容刷新已装资产并更新锁文件，无重复堆积
+  - 卸载（skill remove/rm）以 .infra-lock.json 记账为准：实体目录、agent 目录软链与记账
+    一次清干净；无记账名字整体拒卸；软链只清确属软链的（含悬空），真实文件占位记冲突跳过`;
 }
 
 // spec 命令面契约原文（文案模板：命令名/旗标名/可用清单为实际值；原文例「foo」/「--skills」
