@@ -31,9 +31,10 @@ test('无参且有 TTY：进交互勾选分支', () => {
   assert.deepEqual(resolveSkillSelection({ tokens: [], all: false, isTTY: true }), { kind: 'interactive' });
 });
 
-// 非 TTY 守卫文案 = spec 命令面契约原文（两命令共用同一条，含 plugin add 用法指引）
+// 非 TTY 守卫文案 = spec 命令面契约原文（spec 20261122-edb2 起同时列举 add 与 remove 主形态，
+// 票 20261122-bdb8；含 plugin add 用法指引，三交互动词共用一条）
 const ERR_TTY_GUARD =
-  '交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all 或 plugin add <名...> --profile <名>';
+  '交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all、skill remove <名...>、skill remove --all 或 plugin add <名...> --profile <名>';
 
 test('无参且非 TTY：按守卫文案报错（spec 契约原文，全仓库单点断言）', () => {
   assert.deepEqual(resolveSkillSelection({ tokens: [], all: false, isTTY: false }), {

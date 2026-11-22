@@ -360,10 +360,10 @@ test('[FR-3] 非 TTY skill add 无参：守卫文案报错、退出 1、零落�
   const { code, stdout, stderr } = runCli(project, ['skill', 'add']);
   assert.equal(code, 1, '非 TTY 无参应失败退出');
   assert.equal(stdout, '');
-  // 守卫文案为 spec 命令面契约原文（含 plugin add 用法指引；plugin 侧行为随票 20261116-ccfb 验）
+  // 守卫文案为 spec 命令面契约原文（spec 20261122-edb2 起含 add 与 remove 主形态 + plugin add 用法指引）
   assert.equal(
     stderr,
-    '✗ 交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all 或 plugin add <名...> --profile <名>\n',
+    '✗ 交互选择需要终端（TTY）；非交互请改用 skill add <名...>、skill add --all、skill remove <名...>、skill remove --all 或 plugin add <名...> --profile <名>\n',
   );
   assert.equal(fs.existsSync(path.join(project, '.agents')), false, '守卫路径不得产生安装落盘');
   assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false, '守卫路径不得写锁文件');

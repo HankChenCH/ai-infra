@@ -14,7 +14,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { normalizeNames, resolveSkillSelection } from '../../src/commands/skill/names.ts';
+import {
+  EMPTY_LEDGER_NOTICE,
+  normalizeNames,
+  resolveLedgerRemoval,
+  resolveSkillRemoveSelection,
+  resolveSkillSelection,
+} from '../../src/commands/skill/names.ts';
 import {
   ERR_PROFILE_VALUE,
   profileRequiredLines,
@@ -91,6 +97,94 @@ for (const row of SELECTION_ROWS) {
     }
   });
 }
+
+// ---- spec 20261122-edb2 skill remove 解析矩阵（票 20261122-bdb8，S1/S2）----
+// seam = src/commands/skill/names.ts（resolveSkillRemoveSelection / resolveLedgerRemoval）。
+// 期望值独立来源 = spec 实现决策原文：归一化与 add 共用同一单源（不另测一遍归一化实现，
+// 只测 remove 侧分支）；「是我装的」以锁文件记账为准，任一无记账整体拒绝。
+
+const ERR_REMOVE_ALL_MUTEX = '--all 与技能名互斥：全卸与按条目指定只能选一';
+const ERR_REMOVE_NAMES_EMPTY = 'skill remove 需要至少一个技能名（如 skill remove dev-spec）';
+
+const REMOVE_SELECTION_ROWS: Array<{
+  name: string;
+  tokens: string[];
+  all: boolean;
+  isTTY: boolean;
+  error?: string;
+  want?: { kind: string; names?: string[] };
+}> = [
+  { name: '带名免交互：归一化后按名卸载', tokens: ['dev-spec'], all: false, isTTY: false, want: { kind: 'names', names: ['dev-spec'] } },
+  { name: '归一化与 add 同构：remove a,b a → 并集保序去重 [a,b]', tokens: ['a,b', 'a'], all: false, isTTY: false, want: { kind: 'names', names: ['a', 'b'] } },
+  { name: '--all 全卸', tokens: [], all: true, isTTY: false, want: { kind: 'all' } },
+  { name: '--all 与名互斥（remove 侧同 add 口径）', tokens: ['dev-spec'], all: true, isTTY: true, error: ERR_REMOVE_ALL_MUTEX },
+  { name: '空段 token 过滤后为空报错（remove 侧口径）', tokens: [' , '], all: false, isTTY: false, error: ERR_REMOVE_NAMES_EMPTY },
+  { name: '无参且有 TTY：进交互勾选分支（源=锁文件记账，分支判定同构）', tokens: [], all: false, isTTY: true, want: { kind: 'interactive' } },
+];
+
+for (const row of REMOVE_SELECTION_ROWS) {
+  test(`remove 选择校验：${row.name}`, () => {
+    const selection = resolveSkillRemoveSelection({ tokens: row.tokens, all: row.all, isTTY: row.isTTY });
+    if (row.error !== undefined) {
+      assert.deepEqual(selection, { kind: 'error', message: row.error });
+    } else {
+      assert.deepEqual(selection, row.want);
+    }
+  });
+}
+
+// 账面校验判定（spec S2）：requested 全部在账才放行；任一无记账（全未记账/部分未记账）
+// 整体拒绝——文案含未记账名 + 已装清单 + skill ls 指路（spec 命令面契约）。
+const LEDGER_ROWS: Array<{
+  name: string;
+  names: string[];
+  ledger: string[];
+  want: { kind: string; message?: string; names?: string[] };
+}> = [
+  {
+    name: '全部在账：放行按名卸载',
+    names: ['dev-spec', 'dev-plan'],
+    ledger: ['dev-plan', 'dev-spec'],
+    want: { kind: 'ok', names: ['dev-spec', 'dev-plan'] },
+  },
+  {
+    name: '全未记账：整体拒绝（含该名 + 已装清单 + skill ls 指路）',
+    names: ['ghost'],
+    ledger: ['dev-spec', 'dev-plan'],
+    want: {
+      kind: 'missing',
+      message: '以下技能没有安装记录（以 .infra-lock.json 记账为准）：ghost；已装：dev-plan、dev-spec（skill ls 查看）',
+    },
+  },
+  {
+    name: '部分未记账：整体拒绝（不做部分卸载）',
+    names: ['dev-spec', 'ghost'],
+    ledger: ['dev-spec'],
+    want: {
+      kind: 'missing',
+      message: '以下技能没有安装记录（以 .infra-lock.json 记账为准）：ghost；已装：dev-spec（skill ls 查看）',
+    },
+  },
+  {
+    name: '空账：整体拒绝且已装清单为（无）',
+    names: ['ghost'],
+    ledger: [],
+    want: {
+      kind: 'missing',
+      message: '以下技能没有安装记录（以 .infra-lock.json 记账为准）：ghost；已装：（无）（skill ls 查看）',
+    },
+  },
+];
+
+for (const row of LEDGER_ROWS) {
+  test(`账面校验：${row.name}`, () => {
+    assert.deepEqual(resolveLedgerRemoval({ names: row.names, ledger: row.ledger }), row.want);
+  });
+}
+
+test('空账 --all 提示文案 = spec 契约原文（A1 拍板：提示退 0）', () => {
+  assert.equal(EMPTY_LEDGER_NOTICE, '没有已装技能可卸（.infra-lock.json skills 记账为空）。');
+});
 
 // ---- spec 20261116-2c58 plugin add 新矩阵（票 20261116-ccfb）----
 // seam = src/commands/plugin/names.ts。期望值独立来源 = spec 实现决策原文：名归一化与
