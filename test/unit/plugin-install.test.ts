@@ -404,17 +404,18 @@ test('就绪核验：dsh 不在 PATH 时探测沿 npx 执行体同款 launcher',
   assert.deepEqual(probe.calls, [{ command: 'npx', args: ['--yes', '@deepseek-ai/dsh', '--version'] }]);
 });
 
-// 处方文本契约（seam ④）：三段可复制，与 README「已知边界」恢复配方逐段一致——
-// 锚词独立来源 = README 恢复配方原文（README 漂移即红，配方与处方是同一条契约的两面）。
-test('处方文本契约：三段各含 README 恢复配方对应锚词，且版本与 profile 路径可复制替换', (t) => {
+// 处方文本契约（seam ④）：三段可复制，与恢复配方文档逐段一致——
+// 锚词独立来源 = 恢复配方原文（配方漂移即红，配方与处方是同一条契约的两面）。
+// 配方文本现居 MAINTAINER.md（README 使用者化重构把维护配方移出介绍页，票 20261122-6b28 同批修正守护指针）。
+test('处方文本契约：三段各含恢复配方文档对应锚词，且版本与 profile 路径可复制替换', (t) => {
   const profilePath = makeProfileDir(t);
-  const readme = fs.readFileSync(
-    path.join(testPackageRoot, 'agents', 'dsh', 'plugins', 'dsh-mcp', 'README.md'),
+  const recipe = fs.readFileSync(
+    path.join(testPackageRoot, 'agents', 'dsh', 'plugins', 'dsh-mcp', 'MAINTAINER.md'),
     'utf8',
   );
-  // README 恢复配方锚词在场（配方文本本身是契约的一半）
+  // 恢复配方锚词在场（配方文本本身是契约的一半）
   for (const anchor of ['overrides', '重装 profile 依赖', 'plugin_manager set_plugin', 'GUI']) {
-    assert.ok(readme.includes(anchor), `README 恢复配方应含锚词 ${anchor}`);
+    assert.ok(recipe.includes(anchor), `恢复配方文档应含锚词 ${anchor}`);
   }
 
   const segments = managerPrescriptionLines({ profilePath, runtimeVersion: '0.2.2-rc.5' });
@@ -422,7 +423,7 @@ test('处方文本契约：三段各含 README 恢复配方对应锚词，且版
   assert.ok(segments[0].includes('pnpm-workspace.yaml'), '段 1 应点名 profile 的 pnpm-workspace.yaml');
   assert.ok(segments[0].includes('overrides'), '段 1 应含覆盖配置写法锚词');
   assert.ok(segments[0].includes(`'${MANAGER_PACKAGE}': 0.2.2-rc.5`), '段 1 覆盖配置应钉运行时同版（可复制 YAML）');
-  assert.ok(segments[1].includes('重装 profile 依赖'), '段 2 应含 README 段 2 锚词');
+  assert.ok(segments[1].includes('重装 profile 依赖'), '段 2 应含恢复配方文档段 2 锚词');
   assert.ok(segments[1].includes(`pnpm --dir "${profilePath}"`), '段 2 应是可复制执行的命令（带 profile 路径）');
   assert.ok(segments[1].includes(`${MANAGER_PACKAGE}@0.2.2-rc.5`), '段 2 补装应钉运行时同版');
   assert.ok(segments[2].includes('plugin_manager set_plugin'), '段 3 应含重载指引锚词（工具路径）');

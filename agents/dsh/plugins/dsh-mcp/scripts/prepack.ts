@@ -211,7 +211,7 @@ function runPrepack(): void {
     manifest.exports['.'] = './index.js';
     manifest.files = PUBLISHED_FILES;
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    console.log('✓ prepack：打包清单已换载发布态（main 与 exports["."] → index.js，files → 两面编译产物 + cordis.patch.yml）');
+    console.log('✓ prepack：打包清单已换载发布态（main 与 exports["."] → index.js，files → 两面编译产物 + cordis.patch.yml + img）');
   }
   console.log('✓ prepack：发布面编译完成（index.ts → index.js，client/index.ts → client.js）');
 }

@@ -155,8 +155,8 @@ test('prepack 清单换载三处直指发布态：main 与 exports["."] → inde
   );
   assert.deepEqual(
     manifest.files,
-    ['index.js', 'cordis.patch.yml', 'client.js'],
-    'files 白名单 = 两面编译产物 + patch（不含 .ts 源码）',
+    ['index.js', 'cordis.patch.yml', 'client.js', 'img'],
+    'files 白名单 = 两面编译产物 + patch + 资产目录 img（不含 .ts 源码；img 缺席即介绍页 README 图片 404，票 20261122-6b28）',
   );
 });
 
@@ -174,7 +174,7 @@ test('postpack 还原仓库树：清单回源码态、两面编译产物清理�
   };
   assert.equal(manifest.main, 'index.ts', 'main 须还原源码态');
   assert.equal(manifest.exports?.['.'], './index.ts', 'exports["."] 须还原源码态');
-  assert.deepEqual(manifest.files, ['index.ts', 'cordis.patch.yml', 'client'], 'files 须还原源码态（含 client 源码目录）');
+  assert.deepEqual(manifest.files, ['index.ts', 'cordis.patch.yml', 'client', 'img'], 'files 须还原源码态（含 client 源码目录与 img 资产目录）');
   assert.equal(fs.existsSync(path.join(probe, 'index.js')), false, 'Host 面编译产物须清理');
   assert.equal(fs.existsSync(path.join(probe, 'client.js')), false, '客户端面编译产物须清理');
 });
