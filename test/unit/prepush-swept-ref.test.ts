@@ -97,7 +97,41 @@ test('幽灵引用（tracker 记账不在）：pre-push 维持拒绝', () => {
   try {
     const r = runPrePush(fx.root);
     assert.equal(r.status, 1, `幽灵引用应 rc=1 拒绝，实际 ${r.status}：${r.output}`);
-    assert.ok(r.output.includes('不存在'), `应报工单不存在，实际：${r.output}`);
+    assert.ok(r.output.includes('不存在') && r.output.includes('tracker 记账亦未命中'),
+      `应报不存在且记账未命中，实际：${r.output}`);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('谱系行子串短号幽灵（他票 id 的子串）：不误放行，维持拒绝', () => {
+  const fx = makeFixture({ mapWithTicket: true });
+  try {
+    // map 行含真票 spec0011-20261122-e00b-…；幽灵引用取其 id 段子串「e00」（3 位截断），
+    // 旧模式 docs/tickets/.*$d 会子串命中被误放行，锚定文法必须仍拒绝
+    fs.appendFileSync(
+      path.join(fx.root, '.sdlc', 'trackers', 'github.map'),
+      'docs/tickets/spec0011-20261122-e00b-prepush-swept-ref-map-fallback.md\t999\thttps://example.test/issues/999\n',
+    );
+    execFileSync('git', ['-C', fx.root, 'add', '-A'], { encoding: 'utf-8' });
+    // [#20261122-e00] 可被 commit_refs 提取（-e00 全属 [0-9a-f]）但 ref_key 拒规整原样出列，
+    // 且在锚定文法下是「spec0011- 前缀后 id 段的截断子串」——专钉子串误放行
+    execFileSync('git', ['-C', fx.root, 'commit', '-qm', '[#20261122-e00] 幽灵截断引用（3 位 hex 尾，ref_key 拒规整原样出列）'], { encoding: 'utf-8' });
+    const r = runPrePush(fx.root);
+    assert.equal(r.status, 1, `短号幽灵应 rc=1 拒绝，实际 ${r.status}：${r.output}`);
+    assert.ok(r.output.includes('不存在'), `应报不存在，实际：${r.output}`);
+  } finally {
+    fx.cleanup();
+  }
+});
+
+test('无 *.map 记账文件：维持拒绝（fail-closed）', () => {
+  const fx = makeFixture({ mapWithTicket: false });
+  try {
+    fs.rmSync(path.join(fx.root, '.sdlc', 'trackers', 'github.map'));
+    const r = runPrePush(fx.root);
+    assert.equal(r.status, 1, `无记账应 rc=1 拒绝，实际 ${r.status}：${r.output}`);
+    assert.ok(r.output.includes('不存在'), `应报不存在，实际：${r.output}`);
   } finally {
     fx.cleanup();
   }

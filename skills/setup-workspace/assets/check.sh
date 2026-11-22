@@ -578,11 +578,11 @@ cmd_pre_push() {
       # 票文件落空 = 已验收清扫（清扫在验收 passed 后，流程序列保证该票曾 done 且
       # 被 approved 评审覆盖）——回退查 tracker 映射持久记账（票投影过即有行；先例
       # 同源：cmd_claim 历史号检查），命中放行留痕，未命中（幽灵引用）维持拒绝
-      if grep -q -- "docs/tickets/.*$d" "$SDL"/trackers/*.map 2>/dev/null; then
+      if grep -qE -- "docs/tickets/((need|spec|design|adr|research)([0-9]{4}|[0-9]{8}-[0-9a-f]{4})-)?${d}(-[a-z0-9]+)*\.md" "$SDL"/trackers/*.map 2>/dev/null; then
         info "✓ [$d] 已交付已清扫（tracker 记账放行）"
         continue
       fi
-      echo "✗ 分支提交引用的工单 $d 不存在"; rc=1; continue
+      echo "✗ 分支提交引用的工单 $d 不存在（tracker 记账亦未命中）"; rc=1; continue
     fi
     st="$(fm_get "$f" status)"
     case "$st" in
