@@ -16,6 +16,7 @@ import assert from 'node:assert/strict';
 
 import {
   EMPTY_LEDGER_NOTICE,
+  ERR_INTERACTIVE_TTY,
   normalizeNames,
   resolveLedgerRemoval,
   resolveSkillRemoveSelection,
@@ -120,6 +121,7 @@ const REMOVE_SELECTION_ROWS: Array<{
   { name: '--all 与名互斥（remove 侧同 add 口径）', tokens: ['dev-spec'], all: true, isTTY: true, error: ERR_REMOVE_ALL_MUTEX },
   { name: '空段 token 过滤后为空报错（remove 侧口径）', tokens: [' , '], all: false, isTTY: false, error: ERR_REMOVE_NAMES_EMPTY },
   { name: '无参且有 TTY：进交互勾选分支（源=锁文件记账，分支判定同构）', tokens: [], all: false, isTTY: true, want: { kind: 'interactive' } },
+  { name: '无参且非 TTY：守卫文案报错（更新版含 skill remove 用法，共享单源）', tokens: [], all: false, isTTY: false, error: ERR_INTERACTIVE_TTY },
 ];
 
 for (const row of REMOVE_SELECTION_ROWS) {
