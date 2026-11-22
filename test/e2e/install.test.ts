@@ -528,14 +528,14 @@ test('[FR-1] 软链位被真实目录占位：占位保留记冲突跳过、实�
   assert.match(stdout + stderr, /\.claude\/skills\/dev-spec/, '摘要应点名冲突位置');
 });
 
-// PTY 交互卸载：勾选源 = 锁文件已装记账（装 2 项 → 排序后 dev-plan=0、dev-spec=1）
+// PTY 交互卸载：勾选源 = 锁文件已装记账（装 2 项 → 排序后 design-brief=0、dev-clarify=1）
 const REMOVE_PICK_PATTERN = '选择要卸载的技能';
 
 test('[FR-1] PTY skill remove 无参勾选 1 项确认：卸载结果与带名一致', async (t) => {
   const interactiveProject = makeTargetProject(t);
   assert.equal(runCli(interactiveProject, ['skill', 'add', PICK_NAMES[0], PICK_NAMES[1]]).code, 0);
-  // 按 add 菜单同款排序：design-brief(0)、dev-clarify(5)——卸载菜单同序，勾 dev-clarify
-  const devClarifyIndex = 5;
+  // 卸载菜单同序，勾 dev-clarify：下标锚定已装记账（2 项），非 add 全量编目菜单的下标
+  const devClarifyIndex = 1;
   const picked = await runInteractive(
     interactiveProject,
     pickKeys([devClarifyIndex]),
