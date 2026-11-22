@@ -668,3 +668,154 @@ test('[FR-1] 重跑幂等（skill add 同名重跑）：锁文件无重复条目
   assert.deepEqual(Object.keys(after.lock!.fingerprints), Object.keys(beforeLock.skills), '锁文件技能键集不变');
   assert.equal(Object.keys(beforeLock.skills).length, 1, '无重复条目');
 });
+
+// ---------- [FR-3/FR-4] 清单样张、纯读零落盘与别名矩阵（spec 20261122-edb2，票 20261122-64e9）----------
+// fnm 式已装/可装拆两条：list/ls 列锁文件已装（按名排序 + 安装时间）、list-remote/ls-remote
+// 列包内编目可装（名 + 描述）。期望值独立来源 = 账面记录既有字段（装出 fixture 后读锁文件）
+// 与仓库 skills/ 目录直接枚举（不经编目模块自行推导）；呈现契约按样张逐字节锚定。
+
+test('[FR-3] skill ls 样张：账 2 技能按名排序列名与安装时间、退出 0、stderr 空', (t) => {
+  const project = makeTargetProject(t);
+  assert.equal(runCli(project, ['skill', 'add', 'dev-spec', 'dev-plan']).code, 0);
+  const lockfile = JSON.parse(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'));
+  // 期望值独立来源：装出 fixture 后读锁文件账面记录既有字段（installedAt）
+  const expected =
+    `已装技能（2 项，按名排序）：\n` +
+    `  dev-plan  ${lockfile.skills['dev-plan'].installedAt}\n` +
+    `  dev-spec  ${lockfile.skills['dev-spec'].installedAt}\n`;
+
+  const { code, stdout, stderr } = runCli(project, ['skill', 'ls']);
+  assert.equal(code, 0);
+  assert.equal(stdout, expected, '样张应逐字节（组头 + 按名排序行 + 安装时间）');
+  assert.equal(stderr, '');
+});
+
+test('[FR-3] skill ls 账空：恰输出「（无已装技能）」、退出 0、零落盘', (t) => {
+  const project = makeTargetProject(t);
+  const { code, stdout, stderr } = runCli(project, ['skill', 'ls']);
+  assert.equal(code, 0);
+  assert.equal(stdout, '（无已装技能）\n');
+  assert.equal(stderr, '');
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false, '纯读不得写锁文件');
+});
+
+test('[FR-3] skill ls-remote 样张：包内可装全集（名 + 描述）、退出 0', (t) => {
+  const project = makeTargetProject(t);
+  // 期望值独立来源：直接枚举仓库 skills/ 目录并自行解析各 SKILL.md description（不经编目模块）
+  const names = fs
+    .readdirSync(REPO_SKILLS)
+    .filter((name) => fs.statSync(path.join(REPO_SKILLS, name)).isDirectory())
+    .sort();
+  const rows = names.map((name) => {
+    const head = fs.readFileSync(path.join(REPO_SKILLS, name, 'SKILL.md'), 'utf8').slice(0, 2048);
+    const match = head.match(/^description:\s*(.+)$/m);
+    const description = match ? match[1].trim() : '';
+    return description === '' ? `  ${name}` : `  ${name}  ${description}`;
+  });
+  const expected = `可装技能（${names.length} 项，按名排序）：\n${rows.join('\n')}\n`;
+
+  const { code, stdout, stderr } = runCli(project, ['skill', 'ls-remote']);
+  assert.equal(code, 0);
+  assert.equal(stdout, expected, '可装全集应与仓库 skills/ 枚举逐字节一致（名 + 描述）');
+  assert.equal(stderr, '');
+});
+
+test('[FR-3] 纯读零落盘：任意已装状态跑四条清单动词，锁文件与项目落点集不变', (t) => {
+  const project = makeTargetProject(t);
+  assert.equal(runCli(project, ['skill', 'add', 'dev-spec', 'dev-plan']).code, 0);
+  const lockBefore = fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8');
+  const filesBefore = listFilesRecursive(project);
+
+  for (const argv of [
+    ['skill', 'ls'],
+    ['skill', 'ls-remote'],
+    ['plugin', 'ls'],
+    ['plugin', 'ls-remote'],
+  ]) {
+    const { code, stderr } = runCli(project, argv);
+    assert.equal(code, 0, `清单动词应退 0：${argv.join(' ')}（${stderr}）`);
+  }
+  assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '锁文件字节不变');
+  assert.deepEqual(listFilesRecursive(project), filesBefore, '项目落点集不变');
+});
+
+test('[FR-4] skill foo 未知动词：可用清单列实际注册动词主名（add、remove、list、list-remote）、退出 1、零落盘', (t) => {
+  const project = makeTargetProject(t);
+  const { code, stdout, stderr } = runCli(project, ['skill', 'foo']);
+  assert.equal(code, 1);
+  assert.equal(stdout, '');
+  assert.equal(
+    stderr,
+    '✗ 未知命令「foo」；可用命令：add、remove、list、list-remote（--help 查看用法示例）\n',
+    '未知动词口径逐字节（可用清单 = 实际注册动词主名，动态派生）',
+  );
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false);
+  assert.equal(fs.existsSync(path.join(project, '.agents')), false);
+});
+
+test('[FR-4] 顶层 --help 含全部新动词形态与别名、退出 0、零落盘', (t) => {
+  const project = makeTargetProject(t);
+  const { code, stdout, stderr } = runCli(project, ['--help']);
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  for (const needle of [
+    'skill remove [名...] [--all]',
+    'skill list',
+    'skill list-remote',
+    'plugin remove [名...] [--all]',
+    'plugin list',
+    'plugin list-remote',
+    '别名 rm',
+    '别名 ls',
+    '别名 ls-remote',
+  ]) {
+    assert.ok(stdout.includes(needle), `顶层帮助应含 ${needle}`);
+  }
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false);
+});
+
+test('[FR-4] skill rm --help：用法 + 示例 + 别名行、退出 0、零落盘', (t) => {
+  const project = makeTargetProject(t);
+  const { code, stdout, stderr } = runCli(project, ['skill', 'rm', '--help']);
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  for (const needle of ['用法：npx @hankchen/infra skill remove', '示例：', '别名：rm——skill rm 与 skill remove 行为逐字节一致']) {
+    assert.ok(stdout.includes(needle), `skill rm --help 应含 ${needle}`);
+  }
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false);
+  assert.equal(fs.existsSync(path.join(project, '.agents')), false);
+});
+
+test('[FR-4] 别名矩阵（skill 侧）：ls/list、ls-remote/list-remote、rm/remove 各跑一次行为逐字节一致', (t) => {
+  const byteSame = (
+    a: { code: number | null; stdout: string; stderr: string },
+    b: { code: number | null; stdout: string; stderr: string },
+    label: string,
+  ) => {
+    assert.deepEqual(
+      { code: a.code, stdout: a.stdout, stderr: a.stderr },
+      { code: b.code, stdout: b.stdout, stderr: b.stderr },
+      `别名与主名行为应逐字节一致（${label}）`,
+    );
+  };
+
+  // ls vs list：同构空账项目各跑一次
+  const lsProject = makeTargetProject(t);
+  const listProject = makeTargetProject(t);
+  byteSame(runCli(lsProject, ['skill', 'ls']), runCli(listProject, ['skill', 'list']), 'skill ls / skill list');
+
+  // ls-remote vs list-remote：纯读包内编目，同项目跑两遍
+  const remoteProject = makeTargetProject(t);
+  byteSame(
+    runCli(remoteProject, ['skill', 'ls-remote']),
+    runCli(remoteProject, ['skill', 'list-remote']),
+    'skill ls-remote / skill list-remote',
+  );
+
+  // rm vs remove：两同构项目装 dev-spec 再各卸一次（三通道逐字节）
+  const rmProject = makeTargetProject(t);
+  const removeProject = makeTargetProject(t);
+  assert.equal(runCli(rmProject, ['skill', 'add', 'dev-spec']).code, 0);
+  assert.equal(runCli(removeProject, ['skill', 'add', 'dev-spec']).code, 0);
+  byteSame(runCli(rmProject, ['skill', 'rm', 'dev-spec']), runCli(removeProject, ['skill', 'remove', 'dev-spec']), 'skill rm / skill remove');
+});

@@ -14,11 +14,14 @@ import {
 } from './names.ts';
 import { installedSkillNames, selectInstalledSkillsInteractive, uninstallSkillsAndRender } from './run.ts';
 
-// skill remove 逐命令帮助（用法 + 示例；与 skill add 帮助分级同构）。
+// skill remove 逐命令帮助（用法 + 示例 + 别名行；与 skill add 帮助分级同构，别名行随
+// 票 20261122-64e9 契约收口补齐）。
 const SKILL_REMOVE_HELP = `用法：npx @hankchen/infra skill remove [名...] [选项]
 
 卸载已装技能（.agents/skills/ 实体目录 + agent 目录软链 + .infra-lock.json 记账一次清干净，
 以锁文件记账为准：无记账的名字不会被动）。
+
+别名：rm——skill rm 与 skill remove 行为逐字节一致
 
 参数：
   名...    要卸载的技能名；空格或逗号分隔均可（如 dev-spec,dev-plan）

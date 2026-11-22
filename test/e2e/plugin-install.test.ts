@@ -1086,3 +1086,127 @@ test('[FR-2] PTY plugin remove 确认空选：退出 0 且零落盘、零官方�
   assert.equal(fs.existsSync(removeLog), false, '空选不得执行官方命令');
   assert.equal(fs.readFileSync(path.join(project, '.infra-lock.json'), 'utf8'), lockBefore, '空选不得改锁文件');
 });
+
+// ---------- [FR-3/FR-4] 清单样张与别名矩阵（spec 20261122-edb2，票 20261122-64e9）----------
+// plugin ls 列锁文件 plugins 账面（按 profile 分组，名@版本 + 安装时间）、plugin ls-remote
+// 列包内编目插件（正名 + 描述）。期望值独立来源 = 账面记录既有字段（装出 fixture 后读
+// 锁文件）与仓库 agents/<宿主>/plugins/ 两级枚举直接读各包 package.json（不经编目模块）。
+
+function catalogPluginsIndependently(): Array<{ name: string; description: string }> {
+  const agentsRoot = path.join(packageRoot, 'agents');
+  const plugins: Array<{ name: string; description: string }> = [];
+  for (const host of fs.readdirSync(agentsRoot).sort()) {
+    const hostDir = path.join(agentsRoot, host);
+    if (!fs.statSync(hostDir).isDirectory() || !fs.existsSync(path.join(hostDir, 'plugins'))) continue;
+    for (const dir of fs.readdirSync(path.join(hostDir, 'plugins')).sort()) {
+      const pkg = JSON.parse(fs.readFileSync(path.join(hostDir, 'plugins', dir, 'package.json'), 'utf8'));
+      plugins.push({ name: pkg.name, description: typeof pkg.description === 'string' ? pkg.description : '' });
+    }
+  }
+  return plugins.sort((a, b) => (a.name < b.name ? -1 : 1));
+}
+
+test('[FR-3] plugin ls-remote 样张：包内编目插件（正名 + 描述）、退出 0', (t) => {
+  const project = makeProject(t);
+  const entries = catalogPluginsIndependently();
+  const rows = entries.map((entry) =>
+    entry.description === '' ? `  ${entry.name}` : `  ${entry.name}  ${entry.description}`,
+  );
+  const expected = `可装插件（${entries.length} 项，按名排序）：\n${rows.join('\n')}\n`;
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'ls-remote'], {});
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  assert.equal(stdout, expected, '可装插件应与 agents/<宿主>/plugins/ 枚举逐字节一致（正名 + 描述）');
+});
+
+test('[FR-3] plugin ls 账空：恰输出「（无已装插件）」、退出 0、零落盘', (t) => {
+  const project = makeProject(t);
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'ls'], {});
+  assert.equal(code, 0);
+  assert.equal(stdout, '（无已装插件）\n');
+  assert.equal(stderr, '');
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false, '纯读不得写锁文件');
+});
+
+test('[FR-3] plugin ls 样张：shim 装 2 项跨 profile，按 profile 分组列 名@版本 + 安装时间、退出 0', (t) => {
+  const project = makeProject(t);
+  const dshHome = makeDshHome(t, ['dev', 'test']);
+  const shimDir = makeShimDir(t, ['dsh']);
+  const env = { DSH_HOME: dshHome, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` };
+  assert.equal(runCliIn(project, ['plugin', 'add', PKG, '--profile', 'dev'], env).code, 0);
+  assert.equal(runCliIn(project, ['plugin', 'add', MCP, '--profile', 'test'], env).code, 0);
+  const lockfile = readLockfileAt(project);
+  // 期望值独立来源：账面记录既有字段（version/installedAt）；组行按 profile 名排序
+  const expected =
+    `已装插件（2 项，按 profile 分组）：\n` +
+    `  dev（1 项）：\n    ${PKG}@${lockfile.plugins[PKG].version}  ${lockfile.plugins[PKG].installedAt}\n` +
+    `  test（1 项）：\n    ${MCP}@${lockfile.plugins[MCP].version}  ${lockfile.plugins[MCP].installedAt}\n`;
+
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'ls'], env);
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  assert.equal(stdout, expected, '样张应逐字节（profile 组行 + 名@版本 + 安装时间）');
+});
+
+test('[FR-4] plugin list --help：用法 + 示例 + 别名行、退出 0、零落盘', (t) => {
+  const project = makeProject(t);
+  const { code, stdout, stderr } = runCliIn(project, ['plugin', 'list', '--help'], {});
+  assert.equal(code, 0);
+  assert.equal(stderr, '');
+  for (const needle of ['用法：npx @hankchen/infra plugin list', '示例：', '别名：ls——plugin ls 与 plugin list 行为逐字节一致']) {
+    assert.ok(stdout.includes(needle), `plugin list --help 应含 ${needle}`);
+  }
+  assert.equal(fs.existsSync(path.join(project, '.infra-lock.json')), false);
+});
+
+test('[FR-4] 别名矩阵（plugin 侧）：ls/list、ls-remote/list-remote、rm/remove 各跑一次行为逐字节一致', (t) => {
+  const byteSame = (
+    a: { code: number | null; stdout: string; stderr: string },
+    b: { code: number | null; stdout: string; stderr: string },
+    label: string,
+  ) => {
+    assert.deepEqual(
+      { code: a.code, stdout: a.stdout, stderr: a.stderr },
+      { code: b.code, stdout: b.stdout, stderr: b.stderr },
+      `别名与主名行为应逐字节一致（${label}）`,
+    );
+  };
+
+  // ls vs list：同构空账项目各跑一次
+  const lsProject = makeProject(t);
+  const listProject = makeProject(t);
+  byteSame(runCliIn(lsProject, ['plugin', 'ls'], {}), runCliIn(listProject, ['plugin', 'list'], {}), 'plugin ls / plugin list');
+
+  // ls-remote vs list-remote：纯读包内编目，同项目跑两遍
+  const remoteProject = makeProject(t);
+  byteSame(
+    runCliIn(remoteProject, ['plugin', 'ls-remote'], {}),
+    runCliIn(remoteProject, ['plugin', 'list-remote'], {}),
+    'plugin ls-remote / plugin list-remote',
+  );
+
+  // rm vs remove：两同构项目 shim 装同款再各卸一次（三通道逐字节 + 两落点都真消失）
+  const shimDir = makeShimDir(t, ['dsh']);
+  const rmHome = makeDshHome(t, ['dev']);
+  const removeHome = makeDshHome(t, ['dev']);
+  const rmProject = makeProject(t);
+  const removeProject = makeProject(t);
+  const mkEnv = (home: string) => ({ DSH_HOME: home, PATH: `${shimDir}${path.delimiter}${process.env.PATH}` });
+  assert.equal(runCliIn(rmProject, ['plugin', 'add', PKG, '--profile', 'dev'], mkEnv(rmHome)).code, 0);
+  assert.equal(runCliIn(removeProject, ['plugin', 'add', PKG, '--profile', 'dev'], mkEnv(removeHome)).code, 0);
+  byteSame(
+    runCliIn(rmProject, ['plugin', 'rm', PKG], mkEnv(rmHome)),
+    runCliIn(removeProject, ['plugin', 'remove', PKG], mkEnv(removeHome)),
+    'plugin rm / plugin remove',
+  );
+  for (const [home, project] of [
+    [rmHome, rmProject],
+    [removeHome, removeProject],
+  ] as Array<[string, string]>) {
+    const profilePkg = JSON.parse(fs.readFileSync(path.join(home, 'profiles', 'dev', 'package.json'), 'utf8'));
+    assert.equal(profilePkg.dependencies[PKG], undefined, '依赖行应消失');
+    assert.deepEqual(profilePkg.dsh.profile.bundles, [], 'bundles 行应不含该包');
+    assert.deepEqual(readLockfileAt(project).plugins, {}, '锁文件 plugins 应清账');
+  }
+});

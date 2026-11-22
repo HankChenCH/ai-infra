@@ -17,11 +17,14 @@ import {
 } from './names.ts';
 import { installedPluginEntries, installedPluginLedger, selectInstalledPluginsInteractive, uninstallPluginsAndRender } from './run.ts';
 
-// plugin remove 逐命令帮助（用法 + 示例；与 plugin add 帮助分级同构）。
+// plugin remove 逐命令帮助（用法 + 示例 + 别名行；与 plugin add 帮助分级同构，别名行随
+// 票 20261122-64e9 契约收口补齐）。
 const PLUGIN_REMOVE_HELP = `用法：npx @hankchen/infra plugin remove [名...] [选项]
 
 卸载已装插件（经宿主官方命令转发卸载 + 卸后对账 + .infra-lock.json 清账；目标 profile 由
 账面自动定位，--profile <名> 显式覆盖）。
+
+别名：rm——plugin rm 与 plugin remove 行为逐字节一致
 
 参数：
   名...    要卸载的插件包名；空格或逗号分隔均可（如 @hankchen/dsh-demo）
