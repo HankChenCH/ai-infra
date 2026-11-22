@@ -30,7 +30,7 @@ import {
   resolvePluginRemoveSelection,
   resolvePluginSelection,
 } from '../../src/commands/plugin/names.ts';
-import { unknownCommandMessage, unknownFlagMessage } from '../../src/program.ts';
+import { renderTopHelp, unknownCommandMessage, unknownFlagMessage } from '../../src/program.ts';
 
 // ---- spec 20261116-2c58 命令面契约文案（票 20261116-bfcf 硬切定稿）----
 // 未知子命令/未知旗标为 spec 实现决策原文（文案模板取实际输入与实际注册清单，呈现归装配层）。
@@ -478,4 +478,91 @@ for (const row of PLUGIN_LEDGER_ROWS) {
 
 test('plugin 空账 --all 提示文案（A1 拍板同构：提示退 0）', () => {
   assert.equal(EMPTY_PLUGIN_LEDGER_NOTICE, '没有已装插件可卸（.infra-lock.json plugins 记账为空）。');
+});
+
+// ---- spec 20261122-edb2 命令面契约收口（票 20261122-64e9，S1 帮助分层断言）----
+// seam = src/program.ts（renderTopHelp）+ 命令工厂（createSkillCommand/createPluginCommand，
+// 组内注册即单一事实源）。期望值独立来源 = spec 实现决策「命令面契约同步」原文：
+// 顶层帮助纳入六个新动词形态与别名；逐动词帮助 = 用法 + 示例 + 别名行；未知动词可用清单
+// 取实际注册动词主名（add、remove、list、list-remote）。
+
+import { createPluginCommand } from '../../src/commands/plugin/index.ts';
+import { createSkillCommand } from '../../src/commands/skill/index.ts';
+import type { Command } from 'commander';
+import type { ProgramContext } from '../../src/context.ts';
+
+// 组内注册断言与别名矩阵共用的装配（stub 上下文；reportExitCode 收集器由用例自备）
+function buildGroups(): { skill: Command; plugin: Command } {
+  const context: ProgramContext = { packageRoot: '/unused', packageVersion: '0.0.0-test' };
+  return {
+    skill: createSkillCommand(context, () => {}),
+    plugin: createPluginCommand(context, () => {}),
+  };
+}
+
+const VERB_MAIN_NAMES = ['add', 'remove', 'list', 'list-remote'];
+const VERB_ALIASES: Record<string, string[]> = { add: [], remove: ['rm'], list: ['ls'], 'list-remote': ['ls-remote'] };
+
+test('组内注册：双侧动词主名 = add、remove、list、list-remote（未知动词可用清单的事实源）', () => {
+  const { skill, plugin } = buildGroups();
+  assert.deepEqual(skill.commands.map((cmd) => cmd.name()), VERB_MAIN_NAMES);
+  assert.deepEqual(plugin.commands.map((cmd) => cmd.name()), VERB_MAIN_NAMES);
+});
+
+test('别名声明：rm/ls/ls-remote 双侧与主名各挂一别名（无多余别名）', () => {
+  const { skill, plugin } = buildGroups();
+  for (const group of [skill, plugin]) {
+    for (const verb of group.commands) {
+      assert.deepEqual(verb.aliases(), VERB_ALIASES[verb.name()], `别名声明应与 spec 相符（${verb.name()}）`);
+    }
+  }
+});
+
+test('未知动词可用清单文案：实际注册动词主名逐字节（skill 与 plugin 同清单同模板）', () => {
+  const { skill, plugin } = buildGroups();
+  const want = '未知命令「foo」；可用命令：add、remove、list、list-remote（--help 查看用法示例）';
+  assert.equal(unknownCommandMessage('foo', skill.commands.map((cmd) => cmd.name())), want);
+  assert.equal(unknownCommandMessage('foo', plugin.commands.map((cmd) => cmd.name())), want);
+});
+
+test('顶层帮助含全部六个新动词形态与别名，不含退役旗标名', () => {
+  const help = renderTopHelp();
+  for (const needle of [
+    'skill remove [名...] [--all]',
+    'skill list',
+    'skill list-remote',
+    'plugin remove [名...] [--all]',
+    'plugin list',
+    'plugin list-remote',
+    '别名 rm',
+    '别名 ls',
+    '别名 ls-remote',
+  ]) {
+    assert.ok(help.includes(needle), `顶层帮助应含 ${needle}`);
+  }
+  for (const retired of ['--skills', '--plugins']) {
+    assert.equal(help.includes(retired), false, `顶层帮助不得含旧旗标名 ${retired}`);
+  }
+});
+
+test('逐动词帮助含用法、示例与别名行（remove/list/list-remote 双侧，2c58 帮助分级同构）', () => {
+  const { skill, plugin } = buildGroups();
+  const rows: Array<[Command, string, string, string]> = [
+    [skill, 'skill remove', 'rm', 'remove'],
+    [skill, 'skill list', 'ls', 'list'],
+    [skill, 'skill list-remote', 'ls-remote', 'list-remote'],
+    [plugin, 'plugin remove', 'rm', 'remove'],
+    [plugin, 'plugin list', 'ls', 'list'],
+    [plugin, 'plugin list-remote', 'ls-remote', 'list-remote'],
+  ];
+  for (const [group, usage, alias, verb] of rows) {
+    const groupName = usage.split(' ')[0]; // skill | plugin
+    const cmd = group.commands.find((c) => c.name() === verb);
+    assert.ok(cmd, `动词 ${usage} 应已注册`);
+    const help = cmd.helpInformation();
+    assert.ok(help.includes(`用法：npx @hankchen/infra ${usage}`), `${usage} 帮助应含用法行`);
+    assert.ok(help.includes('示例：'), `${usage} 帮助应含示例节`);
+    const aliasLine = `别名：${alias}——${groupName} ${alias} 与 ${usage} 行为逐字节一致`;
+    assert.ok(help.includes(aliasLine), `${usage} 帮助应含别名行「${aliasLine}」`);
+  }
 });
