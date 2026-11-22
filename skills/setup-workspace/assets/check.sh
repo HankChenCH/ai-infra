@@ -575,6 +575,13 @@ cmd_pre_push() {
   fi
   for d in $refs; do
     if ! f="$(artifact_file ticket "$d")"; then
+      # 票文件落空 = 已验收清扫（清扫在验收 passed 后，流程序列保证该票曾 done 且
+      # 被 approved 评审覆盖）——回退查 tracker 映射持久记账（票投影过即有行；先例
+      # 同源：cmd_claim 历史号检查），命中放行留痕，未命中（幽灵引用）维持拒绝
+      if grep -q -- "docs/tickets/.*$d" "$SDL"/trackers/*.map 2>/dev/null; then
+        info "✓ [$d] 已交付已清扫（tracker 记账放行）"
+        continue
+      fi
       echo "✗ 分支提交引用的工单 $d 不存在"; rc=1; continue
     fi
     st="$(fm_get "$f" status)"
