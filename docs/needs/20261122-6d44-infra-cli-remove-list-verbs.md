@@ -1,8 +1,9 @@
 ---
 id: 20261122-6d44
-status: confirmed
+status: fulfilled
 created: 2026-11-22
 confirmed: 2026-11-22
+fulfilled: 2026-11-22
 ---
 # @hankchen/infra 命令行剩余动词补全：卸载（remove/rm）与清单（list/ls、list-remote/ls-remote）
 
