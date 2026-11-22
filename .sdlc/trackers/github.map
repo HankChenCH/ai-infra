@@ -317,3 +317,6 @@ docs/acceptance/spec20261122-edb2-20261122-702b-edb2-round1.md	337	https://githu
 docs/tickets/spec0011-20261122-61d2-prepush-trunk-push-blindspot.md	339	https://github.com/HankChenCH/ai-infra/issues/339
 docs/tickets/spec0013-20261122-fe59-run-mechanics-gate-discipline.md	340	https://github.com/HankChenCH/ai-infra/issues/340
 docs/reviews/20261122-e5c3-gate-discipline-fix-review.md	341	https://github.com/HankChenCH/ai-infra/issues/341
+docs/needs/20261122-f5fc-projection-aggregate-per-need.md	342	https://github.com/HankChenCH/ai-infra/issues/342
+docs/specs/need20261122-f5fc-20261122-cda7-aggregate-issue-per-need.md	343	https://github.com/HankChenCH/ai-infra/issues/343
+docs/tickets/spec20261122-cda7-20261122-4295-aggregate-projection-batch.md	344	https://github.com/HankChenCH/ai-infra/issues/344
