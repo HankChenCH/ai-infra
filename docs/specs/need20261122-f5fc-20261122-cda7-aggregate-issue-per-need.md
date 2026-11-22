@@ -1,6 +1,7 @@
 ---
 id: 20261122-cda7
-status: approved
+status: done
+done: 2026-11-22
 approved: 2026-11-22
 need: 20261122-f5fc
 round: 1
