@@ -3,6 +3,20 @@
 本项目的所有显著变更记录于此。
 格式遵循 Keep a Changelog（https://keepachangelog.com），版本遵循语义化版本。
 
+## [v0.6.0] - 2026-11-22
+
+### Added
+
+- CLI 命令面补全：`skill` 与 `plugin` 命令组各新增 `remove`（别名 `rm`）、`list`（别名 `ls`）、`list-remote`（别名 `ls-remote`）三动词（spec 20261122-edb2，need 20261122-6d44，PR #338 四票：20261122-bdb8 skill 卸载 / 20261122-0204 plugin 卸载 / 20261122-64e9 清单四动词 / 20261122-350f 文档对齐与升号）。卸载账本驱动——「是我装的」以锁文件记账为准：带名免交互直接执行（多名归一化与 add 同构，并集保序去重）、无参 PTY 环境进已装条目勾选、`--all` 一键全卸、无记账或部分未记账整体拒卸并列已装清单指路 `ls`；实体目录与 `.claude/skills` 软链双落点清理，账在实亡（实体被手动删）照清账并删悬空软链、软链被替换为真实目录的冲突位跳过不删且摘要注明。插件卸载经官方命令 `dsh plugin --profile <名> remove <包>` 转发，profile 由账面自动定位（`--profile` 显式覆盖并在摘要注明），卸后对账两落点消失再清账。清单纯读双命令（fnm 式拆分，need D8 翻案拍板）：`list`/`ls` 列锁文件已装（插件按 profile 分组）、`list-remote`/`ls-remote` 列包内编目可装。顶层帮助契约收口：六新动词入帮助、逐动词别名行、未知动词报错列合法清单。配套：面向人的文档对齐（README 双侧形态示例与卸载叙事、getting-started 已知边界、GLOSSARY 术语登记）；e2e 样张覆盖装卸全链、清单输出逐字节、纯读零落盘、别名矩阵三通道一致、PTY 勾选与取消空选；unit 新增 skill-uninstall / plugin-uninstall / 清单装配测试。包版本 0.5.0 → 0.6.0（新用户可见能力 minor 升号）。
+
+### Changed
+
+- run-mechanics §6 预演节补两条运行纪律（票 20261122-fe59，提交 5f2a897，spec 0016 运行两次假绿实证教训折回）：门禁命令执行细则——一律以仓库根为 cwd、退出码直取 zsh `pipestatus[1]` / bash `PIPESTATUS[0]`，管道尾退出码不得当门禁判据（cwd 错位时 `.sdlc/check.sh: no such file or directory` 被管道尾吞掉、退出码 0 假绿）；门红先甄别再处置——异常终止形态 + 复跑全绿 + 代码零变化判环境偶发、报授权复跑一次，可复现失败摘要（真回归特征）不经此通道直走预演失败流。静态守护 test/unit/run-mechanics-gate-discipline.test.ts 3/3。
+
+### Fixed
+
+- pre-push 门 trunk 直推时追溯校验空转放行（票 20261122-61d2，提交 c1c9d49，spec 0011 名义归属；受控复现 + 现场双实例实证）：HEAD == BASE_REF（主干直推）时 merge-base 比较退化恒空集，门报「无领先提交」放行，implemented↔approved 评审覆盖核验空转（受控复现：空提交领先 1 条退 0；现场实例 e24524d/181fe8d 两次直推均被放行）。修复：subjects 空且 base==HEAD 时改对 `origin/<BASE_REF>..HEAD`（本次推送内容）做同款校验，origin 缺失或与本地基准一致时行为不变（单机形态与既有 STREAM 快照用例不受影响）。回归测试 skills/setup-workspace/tests/test_prepush_trunk.py 3/3（修复前 2 failed 均为空转形态），双态资产整文件 cp 同步（check.sh 与 assets 副本逐字一致）。
+
 ## [dsh-mcp 0.4.1] - 2026-11-22
 
 ### Fixed
