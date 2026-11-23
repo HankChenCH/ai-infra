@@ -25,6 +25,9 @@ description: 把技术调研问题变成 docs/research/ 的带一手来源引用
    禁止自行脑补研究目标。"需要调研 X"这类焦虑不是问题。
 3. **一报告一主题**：多个问题同属一个决策或一个技术域才并一张报告；
    不相干的问题各立各的。
+4. **对应 need 确认**：确认本次调研对应的 need 编号并读其全文——dev-clarify 就地联动时取
+   dev-clarify 给出的编号；手动形态须已 confirmed；不可唯一确定 → 列出候选请用户点名，
+   禁止代挑。无对应 need 的独立调研照常进行（取号不带父参数）。
 
 ## 2. 决策点：问题清单确认（开工前必问）
 
@@ -49,29 +52,33 @@ description: 把技术调研问题变成 docs/research/ 的带一手来源引用
 ## 4. 出口门禁（全部通过才算完）
 
 1. 落盘前用 Skill 工具装载 ref-writing，一次只载一个。
-2. 运行 `.sdlc/check.sh claim research <slug>` 取号（slug 用 ASCII 小写短横线）——
-   返回占位文件路径，号由入口原子分配、全历史唯一；用下面的模板写正文覆盖占位
-   文件（frontmatter `id` 填文件名的 ID 段），运行 `.sdlc/check.sh validate <占位路径>`
+2. 运行 `.sdlc/check.sh claim research <slug> need <need-ID>` 取号（slug 用 ASCII 小写短横线）——
+   有对应 need 时带父参数 `need <need-ID>`，文件名带 need 谱系前缀（随 publish 挂对应聚合单评论）；
+   纯调研需求可按主题多张，文件名带 need 谱系前缀；无对应 need 的独立调研沿用
+   `.sdlc/check.sh claim research <slug>` 无前缀取号。返回占位文件路径，号由入口原子分配、全历史唯一；
+   用下面的模板写正文覆盖占位文件（frontmatter `id` 填文件名的 ID 段），运行 `.sdlc/check.sh validate <占位路径>`
    必须通过；不过 → 修复后重跑。再跑 `.sdlc/check.sh publish <占位路径>`，
    提交留痕 `[trivial]`。
-3. **出口（指路，不自动串联）**：给用户念结论速览，然后抛决策问题：
-   "报告 NNNN 已落盘——结论可作 /dev-spec 实现决策的依据；要拍方向，
+3. **出口（指路，不自动串联）**：给用户念结论速览，然后按纯调研支指路出口：
+   **纯调研支指路（通读拍板 → 记账置 fulfilled，不经 spec）**——两态归置，判据 = 报告之后是否还有实现交付物：
+   实现前调研照常指路 dev-spec（报告后还有实现交付物，报告只作 spec 输入、不产生工单）；
+   实现前调研：抛决策问题——"报告 NNNN 已落盘——结论可作 /dev-spec 实现决策的依据；要拍方向，
    回 /dev-clarify 决策卡。调研否掉的方案建议进「范围与非目标」。"
    调研给事实与对比，拍板永远归用户。
-   **纯调研支指路（通读拍板 → 记账置 fulfilled，不经 spec）**——两态归置，判据 = 报告之后是否还有实现交付物：
-   实现前调研照常指路 dev-spec（报告后还有实现交付物，走上面的决策问题）；
    纯调研需求（报告即全部交付物，报告后无实现交付物）不经 spec / 票 / 运行管道，落点按进入形态分：
-   ① 就地联动形态（dev-clarify 调用本技能）：报告交付时 need 仍为 draft，只交付报告并回填，不记账，拍板与记账交回 dev-clarify 出口在定稿之后承载；
+   ① 就地联动形态（dev-clarify 调用本技能）：报告交付时 need 仍为 draft，只交付报告、不写 need（结论回填 need 由 dev-clarify 按三路归置在定稿时承载），不记账，拍板与记账交回 dev-clarify 出口在定稿之后承载；
    ② 手动形态（need 已 confirmed 后用户触发）：报告交付后请用户通读拍板，
    拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算；
    拍板通过 → 出口会话记账置 need fulfilled——记账只对盘上已 confirmed 的对应 need 执行，否则不记账、如实相告并指路 /dev-clarify；
-   记账动作 = need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，对 need 重跑 validate 与 `.sdlc/check.sh publish`（聚合单随终态关闭），提交留痕 `[trivial]`。
+   记账动作 = need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，对 need 重跑 validate 与 `.sdlc/check.sh publish`（聚合单随终态关闭），提交留痕 `[trivial]`；
+   拍板不通过 → 不记账，说明差距并停在拍板点（need 保持 confirmed），差距归位后重走拍板。
 
 ## 5. 中断与交接
 
 问题清单确认前被打断 → 对话态重开，直接重新规整，成本低。
 确认后被打断 → 重跑检索即可，检索是幂等的。报告只有落盘才存在：
 未落盘即未发生——没有盘上中间态，也没有半成品报告。
+手动形态重入：报告已落盘而通读拍板或记账未完成 → 不重跑检索、不另立报告，读既有报告请用户通读拍板后记账。
 状态在盘上，不在对话里。
 
 ## 报告模板（固定）
