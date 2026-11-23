@@ -2,26 +2,36 @@
 //
 // 守护对象 = 票 20261123-9492 落盘的调研归位语义：澄清就地联动 dev-research 的时序、三路归置
 // 逃生舱「变 FR（调研报告是交付物）」退役、调研分两态归置（纯调研支不经 spec / 票 / 运行管道）、
-// need.fulfilled 推进者镜像。读七文件全文：docs/sdlc-skills-blueprint.md、
+// need.fulfilled 推进者镜像。读八文件全文：docs/sdlc-skills-blueprint.md、
 // skills/dev-clarify/SKILL.md、skills/dev-clarify/references/research.md、
-// skills/dev-research/SKILL.md、skills/dev-spec/SKILL.md、GLOSSARY.md、docs/METHOD.md。
+// skills/dev-research/SKILL.md、skills/dev-spec/SKILL.md、GLOSSARY.md、docs/METHOD.md、
+// docs/concepts.md。
 // 锚词 = spec 20261123-c5e1「验收场景」与「实现决策」的字面，期望值独立来源（非实现推导）；
 // 受守护文本再变时，本测试与文档同批改。测试按验收场景组织；测试名括注列出读取面与锚词
 // 所在的节——断言打在整个读取面上，节号仅供定位。
 // （手法先例：docs-surface.test.ts 锚词 + 负向清单、ci-workflow.test.ts「文件即契约」。）
 //
 // 蓝图读取面分两种：
-// - 正向锚只打在规格行——比对前剔除以 `> **v` 开头的修订记录行。修订记录行逐字复述了
-//   大部分新句：读全文的话，规格行回退后这些锚词靠修订记录就能满足，正向断言假绿。
-// - 负向锚打在蓝图全文（含修订记录行）——退役句在蓝图任何位置都不该复述。蓝图负向取退役句的
-//   稳定子串（「变 FR」「调研报告是交付物」「不许悬置」）：蓝图旧句括注内多一段
-//   「，need 0001 先例」，沿用 spec 原句对蓝图是空断言（改前就是零命中）。
+// - 正向锚只打在规格行——比对前整块剔除头部修订块：自 `> 版本 ` 行起、至首个 `## ` 标题之前。
+//   修订记录逐字复述了大部分新句：读全文的话，规格行回退后这些锚词靠修订记录就能满足，
+//   正向断言假绿。按行剔除会漏掉折行的续行，所以整块剔除；两个定位点任一找不到就抛错，
+//   不让读取面静默退化成全文。
+// - 负向锚打在蓝图全文（含修订块）——退役句在蓝图任何位置都不该复述。
+//
+// 退役句负向锚 = 稳定子串「变 FR」「调研报告是交付物」「不许悬置」，打在退役句的三个历史
+// 落点（蓝图、references/research.md、dev-clarify SKILL.md）。不用带括注的原句字面：蓝图旧句
+// 括注内多一段「，need 0001 先例」，原句对蓝图是空断言（改前就零命中）；对另两处，原句只
+// 拦得住逐字写回，拦不住改括注的写回。
 //
 // 折行处理：受守护 Markdown 有硬折行，锚词可能被折行切开——比对前把全文与锚词的空白字符
-// 全部去掉，两侧同规。正向锚一律取子句级字面（多数整句、带标点或专名），去空白后不可能被
-// 无关文本拼出；裸关键词会被同文件内无关句子满足的（蓝图规格行里的「沉默不算」「禁止代挑」
-// 「need 谱系前缀」各有多处无关命中），锚词取其所在句的字面。负向锚是 spec 点名的稳定子串，
-// 按字面使用。
+// 全部去掉，两侧同规。
+// 锚词取法：带箭头的条件规则钉跨箭头整句（条件与后果各钉碎片时，把规则反转仍是绿的）；
+// 裸关键词会被同文件内无关句子满足的（蓝图规格行里的「沉默不算」「禁止代挑」
+// 「need 谱系前缀」各有多处命中），取其所在句的字面；同一句在同文件两节各有一份时（蓝图 §8
+// 决策点全表与 §11.13、蓝图 §11.13 与 §11.14、dev-clarify description 与 §4 出口、research.md
+// 时序节与落盘映射节），场景点名的节各钉一条接上前后文的独占字面，删掉任一份都会红；前后文
+// 只差标点的那一句（拍板不通过句）改钉它在蓝图规格行的出现次数。负向锚按 spec 点名的稳定
+// 子串字面使用。
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,18 +52,36 @@ const loadSurface = (rel: string): Surface => ({ label: rel, text: read(rel) });
 
 const blueprintRel = path.join('docs', 'sdlc-skills-blueprint.md');
 const blueprint = read(blueprintRel);
-const blueprintFull: Surface = { label: `${blueprintRel}（全文，含修订记录行）`, text: blueprint };
-/** 蓝图规格行：剔除以 `> **v` 开头的修订记录行——正向锚只打在这里。 */
-const blueprintSpec: Surface = {
-  label: `${blueprintRel}（规格行）`,
-  text: blueprint.split('\n').filter((line) => !line.startsWith('> **v')).join('\n'),
-};
+const blueprintFull: Surface = { label: `${blueprintRel}（全文，含修订块）`, text: blueprint };
+
+/**
+ * 蓝图规格行读取面：整块剔除头部修订块——自 `> 版本 ` 行起、至首个 `## ` 标题之前。
+ * 定位点缺失或次序颠倒即抛错：读取面静默退化成全文，等于正向断言假绿。
+ */
+function blueprintSpecLines(full: string): string {
+  const lines = full.split('\n');
+  const blockStart = lines.findIndex((line) => line.startsWith('> 版本 '));
+  const blockEnd = lines.findIndex((line) => line.startsWith('## '));
+  if (blockStart === -1 || blockEnd === -1 || blockStart >= blockEnd) {
+    throw new Error(
+      `蓝图修订块定位失败，规格行读取面不可信：\`> 版本 \` 行下标 ${blockStart}、首个 \`## \` 标题行下标 ${blockEnd}（从 0 起；应为前者 ≥ 0 且小于后者）`,
+    );
+  }
+  return lines.filter((_, index) => index < blockStart || index >= blockEnd).join('\n');
+}
+
+/** 蓝图规格行：剔除头部修订块——正向锚只打在这里。 */
+const blueprintSpec: Surface = { label: `${blueprintRel}（规格行）`, text: blueprintSpecLines(blueprint) };
 const devClarify = loadSurface(path.join('skills', 'dev-clarify', 'SKILL.md'));
 const researchRef = loadSurface(path.join('skills', 'dev-clarify', 'references', 'research.md'));
 const devResearch = loadSurface(path.join('skills', 'dev-research', 'SKILL.md'));
 const devSpec = loadSurface(path.join('skills', 'dev-spec', 'SKILL.md'));
 const glossary = loadSurface('GLOSSARY.md');
 const method = loadSurface(path.join('docs', 'METHOD.md'));
+const concepts = loadSurface(path.join('docs', 'concepts.md'));
+
+/** 退役句的稳定子串：三个历史落点同取，带括注的原句字面拦不住改括注的写回。 */
+const RETIRED_FRAGMENTS = ['变 FR', '调研报告是交付物', '不许悬置'];
 
 /** 折行处理：去空白后比对——硬折行不在锚词里留痕迹。 */
 const squeeze = (text: string): string => text.replace(/\s/g, '');
@@ -80,12 +108,16 @@ function assertRetiredAbsent(surfaces: readonly Surface[], anchors: readonly str
 
 // ── 负向：退役句与被更正的旧措辞零命中 ──
 
-test('references/research.md：退役逃生舱句「变 FR（调研报告是交付物）」零命中', () => {
-  assertRetiredAbsent([researchRef], ['变 FR（调研报告是交付物）']);
+test('蓝图全文（含头部修订块）：退役句稳定子串「变 FR」「调研报告是交付物」「不许悬置」零命中', () => {
+  assertRetiredAbsent([blueprintFull], RETIRED_FRAGMENTS);
 });
 
-test('蓝图全文（含修订记录行）：退役句稳定子串「变 FR」「调研报告是交付物」「不许悬置」零命中', () => {
-  assertRetiredAbsent([blueprintFull], ['变 FR', '调研报告是交付物', '不许悬置']);
+test('references/research.md：退役句稳定子串「变 FR」「调研报告是交付物」「不许悬置」零命中（改括注的写回同样拦）', () => {
+  assertRetiredAbsent([researchRef], RETIRED_FRAGMENTS);
+});
+
+test('dev-clarify SKILL.md（退役句第三个历史落点）：退役句稳定子串「变 FR」「调研报告是交付物」「不许悬置」零命中', () => {
+  assertRetiredAbsent([devClarify], RETIRED_FRAGMENTS);
 });
 
 test('蓝图全文：被更正的旧措辞「只交付报告并回填」零命中', () => {
@@ -100,8 +132,8 @@ test('拒绝联动不强制调研：蓝图、research.md、dev-clarify 均无「
   assertRetiredAbsent([blueprintFull, researchRef, devClarify], ['必须完成调研才可定稿']);
 });
 
-test('拍板不通过不置终态：蓝图与 dev-research 无「不通过亦置 fulfilled」「即置 fulfilled」语义', () => {
-  assertRetiredAbsent([blueprintFull, devResearch], ['不通过亦置 fulfilled', '即置 fulfilled']);
+test('拍板不通过不置终态：蓝图、dev-clarify、research.md、dev-research 均无「不通过亦置 fulfilled」「即置 fulfilled」语义', () => {
+  assertRetiredAbsent([blueprintFull, devClarify, researchRef, devResearch], ['不通过亦置 fulfilled', '即置 fulfilled']);
 });
 
 // ── 正向：就地联动时序与转调研归置（FR-1 / FR-2 与其异常流）──
@@ -134,6 +166,11 @@ test('用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假�
   assertAnchored([blueprintSpec, devClarify, researchRef], [
     '用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」',
   ]);
+  // research.md 在就地联动时序节与落盘映射节各载一份同句，各接上一行的文钉住——删掉任一份都要红
+  assertAnchored([researchRef], [
+    '报告作 need 正文依据与 spec 输入，不产生工单。用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」',
+    '调研明确否掉的方案 → 范围与非目标。用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」',
+  ]);
 });
 
 test('research.md 诚实边界：dev-research 未安装 → 如实相告；内联查证结论不得冒充调研结论', () => {
@@ -164,9 +201,14 @@ test('该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报�
   ]);
 });
 
-test('结论回填 need 时注明报告编号（dev-clarify / research.md 回填句；蓝图 §11.13）', () => {
+test('结论回填 need 时注明报告编号（dev-clarify / research.md 回填句；蓝图 §11.13 三路归置句与 references 摘要行）', () => {
   assertAnchored([devClarify, researchRef], ['在定稿前承载，注明报告编号']);
-  assertAnchored([blueprintSpec], ['结论回填 need 时注明报告编号']);
+  // 摘要行这条与 §11.14 出口段的近似句只差主语（「报告回填 need 归本技能」对「结论回填 need
+  // 由 dev-clarify」），各钉各的主语——只钉共同子串时删掉任何一处都仍绿。
+  assertAnchored([blueprintSpec], [
+    '结论回填 need 时注明报告编号',
+    '报告回填 need 归本技能按三路归置在定稿前承载，并注明报告编号',
+  ]);
 });
 
 // ── 正向：纯调研支两态归置与拍板记账（FR-3）──
@@ -183,14 +225,19 @@ test('两态判据 = 报告之后是否还有实现交付物；实现前调研�
 });
 
 test('纯调研需求报告后无实现交付物，不经 spec / 票 / 运行管道（蓝图 §11.14 / dev-research / GLOSSARY）', () => {
-  assertAnchored([blueprintSpec, devResearch, glossary], ['报告后无实现交付物', '不经 spec / 票 / 运行管道']);
+  // 蓝图 §11.13 出口门禁另有「不经 spec / 票 / 运行管道：」一份，§11.14 这份靠紧随的
+  // 「落点按进入形态分」钉住。
+  assertAnchored([blueprintSpec, devResearch], [
+    '纯调研需求（报告即全部交付物，报告后无实现交付物）不经 spec / 票 / 运行管道，落点按进入形态分',
+  ]);
+  assertAnchored([glossary], ['报告后无实现交付物', '不经 spec / 票 / 运行管道']);
 });
 
 test('就地联动形态与 need 尚为 draft 的手动触发：只交付报告，不记账、不写 need；回填在定稿前承载，拍板与记账交回 dev-clarify 出口（蓝图 §11.14 / dev-research）', () => {
   assertAnchored([blueprintSpec, devResearch], [
     'need 尚为 draft 的手动触发：报告交付时 need 仍为 draft',
     '只交付报告，不记账、不写 need',
-    '在定稿前承载，并注明报告编号',
+    '结论回填 need 由 dev-clarify 按三路归置在定稿前承载，并注明报告编号',
     '拍板与记账交回 dev-clarify 出口在定稿之后承载',
   ]);
 });
@@ -199,16 +246,22 @@ test('记账只对盘上已 confirmed 的对应 need 执行（蓝图 §11.14 / d
   assertAnchored([blueprintSpec, devResearch, glossary], ['记账只对盘上已 confirmed 的对应 need 执行']);
 });
 
-test('拍板口径：成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算（蓝图 / dev-clarify / dev-research）', () => {
-  assertAnchored([blueprintSpec, devClarify, devResearch], [
-    '拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算',
+test('拍板口径：成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算（蓝图 §11.13 与 §11.14 各一份 / dev-clarify / dev-research）', () => {
+  // 拍板口径接在各自的触发句后面钉成整句：蓝图 §11.13 与 §11.14 各载一份同句，各钉各的触发句
+  assertAnchored([blueprintSpec, devClarify], [
+    '定稿后请用户通读拍板，拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算',
+  ]);
+  assertAnchored([blueprintSpec, devResearch], [
+    '报告交付后请用户通读拍板，拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算',
   ]);
 });
 
-test('拍板不通过 → 不记账，说明差距并停在拍板点（蓝图 / dev-clarify / research.md / dev-research）', () => {
-  assertAnchored([blueprintSpec, devClarify, researchRef, devResearch], [
-    '拍板不通过 → 不记账，说明差距并停在拍板点',
-  ]);
+test('拍板不通过 → 不记账，说明差距并停在拍板点（蓝图 §11.13 与 §11.14 各一份 / dev-clarify / research.md / dev-research）', () => {
+  const sentence = '拍板不通过 → 不记账，说明差距并停在拍板点';
+  assertAnchored([blueprintSpec, devClarify, researchRef, devResearch], [sentence]);
+  // 蓝图 §11.13 出口门禁与 §11.14 出口各载一份同句、前后文只差标点：改钉次数，删掉任意一份都会红
+  const occurrences = squeeze(blueprintSpec.text).split(squeeze(sentence)).length - 1;
+  assert.equal(occurrences, 2, `「${sentence}」应在蓝图规格行出现 2 次`);
 });
 
 test('纯调研支出口：通读拍板 → 记账置 need fulfilled，不指路 /dev-spec（蓝图 §11.13 出口门禁 / dev-clarify §4 出口 / research.md）', () => {
@@ -217,10 +270,22 @@ test('纯调研支出口：通读拍板 → 记账置 need fulfilled，不指路
   ]);
 });
 
-test('纯调研支出口按报告是否交付分叉：未交付 → 建议 /dev-research 交付报告；已交付并已随定稿回填 → 定稿后通读拍板（蓝图 §11.13 / dev-clarify / research.md）', () => {
-  assertAnchored([blueprintSpec, devClarify, researchRef], [
+test('纯调研支出口按报告是否交付分叉：未交付 → 建议 /dev-research 交付报告；已交付并已随定稿回填 → 定稿后通读拍板（蓝图 §11.13 出口门禁 / dev-clarify §4 出口 / research.md）', () => {
+  // 已交付分支钉跨箭头整句：只钉条件半句时，把「定稿后」改成「定稿前」不会变红。
+  assertAnchored([blueprintSpec, devClarify], [
+    '报告已交付并已随定稿回填（含就地联动产出与定稿前手动触发产出的报告）→ 定稿后请用户通读拍板',
+  ]);
+  assertAnchored([researchRef], [
     '报告尚未交付 → 建议 /dev-research 交付报告',
-    '报告已交付并已随定稿回填',
+    '报告已交付并已随定稿回填（含就地联动产出与定稿前手动触发产出的报告）→ 拍板与记账在定稿之后归 SKILL.md §4 出口第 4 步',
+  ]);
+  // 未交付分支与引导括注在蓝图 §8 决策点全表 dev-clarify 行、dev-clarify description 各另有一份：
+  // 场景点名的是 §11.13 出口门禁与 §4 出口，各钉一条只在该节出现的独占字面。
+  assertAnchored([blueprintSpec], [
+    '纯调研支出口（通读拍板 → 记账置 need fulfilled，不指路 /dev-spec）**——纯调研需求（报告即全部交付物，报告后无实现交付物）不经 spec / 票 / 运行管道：报告尚未交付 → 建议 /dev-research 交付报告',
+  ]);
+  assertAnchored([devClarify], [
+    '报告尚未交付 → 建议 /dev-research 交付报告（交付后的拍板与记账归 dev-research 出口手动形态，本技能到此为止）',
   ]);
 });
 
@@ -264,8 +329,12 @@ test('need 不可唯一确定 → 列出候选请用户点名，禁止代挑（�
   assertAnchored([blueprintSpec, devResearch], ['不可唯一确定 → 列出候选请用户点名，禁止代挑']);
 });
 
-test('报告已落盘后重入（就地联动形态或 need 尚为 draft）：该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告 → 不重跑检索、不另立报告（蓝图 §11.14 / dev-research §5）', () => {
-  assertAnchored([blueprintSpec, devResearch], ['该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告', '不重跑检索、不另立报告']);
+test('报告已落盘后重入（就地联动形态或 need 尚为 draft）：该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告 → 读既有报告、把结论交回 dev-clarify 回填，不重跑检索、不另立报告（蓝图 §11.14 / dev-research §5）', () => {
+  // 条件与后果钉成跨箭头整句：条件半句在蓝图 §11.13「不重复触发」句里另有一份，后果半句在
+  // 手动形态分句里也出现——各钉碎片时，把后果反转成「重跑检索、另立报告」不会变红。
+  assertAnchored([blueprintSpec, devResearch], [
+    '该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告 → 读既有报告、把结论交回 dev-clarify 回填，不重跑检索、不另立报告',
+  ]);
 });
 
 test('手动形态重入：报告已落盘而通读拍板或记账未完成 → 不重跑检索、不另立报告（蓝图 §11.14 / dev-research §5）', () => {
@@ -329,5 +398,11 @@ test('need.fulfilled 推进者镜像：蓝图 §6.1 状态机表、蓝图 §4.3 
   assertAnchored([blueprintSpec, method], [
     '或纯调研支经用户通读拍板记账置位——手动形态 dev-research 出口、就地联动形态 dev-clarify 出口',
     '或由纯调研支经用户通读拍板记账置位（手动形态 dev-research 出口、就地联动形态 dev-clarify 出口，不经 spec）',
+  ]);
+});
+
+test('docs/concepts.md 状态机举例：need 行 fulfilled 推进者含纯调研支经用户通读拍板记账置位（状态机表同口径）', () => {
+  assertAnchored([concepts], [
+    '或纯调研支经用户通读拍板记账置位——手动形态 dev-research 出口、就地联动形态 dev-clarify 出口',
   ]);
 });
