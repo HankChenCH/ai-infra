@@ -1,10 +1,11 @@
 ---
 id: 20261123-c5e1
-status: approved
+status: done
 need: 20261122-c702
 round: 1
 created: 2026-11-23
 approved: 2026-11-23
+done: 2026-11-24
 ---
 # 调研归位 round 1：澄清就地联动 dev-research、逃生舱退役、调研分两态归置
 
@@ -331,7 +332,11 @@ dev-execute / dev-review / check.sh 零改动——管道里天然只剩实现�
     清零且未产生任何工单。
   - [FR-3 | 集成级 | 人工：纯调研需求端到端跨 dev-clarify / dev-research 两
     技能，须新会话实操] Given 报告即全部交付物的 need 确认，When dev-research
-    交付报告，Then 用户通读拍板后 need 置 fulfilled，全程无票无 spec。
+    交付报告，Then 用户通读拍板后 need 置 fulfilled，全程无票无 spec。（验收
+    折回 2026-11-24，验收 20261124-a369 passed：本条覆盖手动形态——need 已
+    confirmed 后由用户触发 dev-research，报告交付后的拍板与记账归 dev-research
+    出口；纯调研报告经就地联动形态在澄清中产出时，拍板与记账在定稿后归
+    dev-clarify 出口，该形态本轮只有静态守护、未做运行时实操。）
 
 ## 非目标
 
