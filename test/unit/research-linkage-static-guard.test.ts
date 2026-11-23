@@ -14,8 +14,8 @@
 // 蓝图读取面分两种：
 // - 正向锚只打在规格行——比对前整块剔除头部修订块：自 `> 版本 ` 行起、至首个 `## ` 标题之前。
 //   修订记录逐字复述了大部分新句：读全文的话，规格行回退后这些锚词靠修订记录就能满足，
-//   正向断言假绿。按行剔除会漏掉折行的续行，所以整块剔除；两个定位点任一找不到就抛错，
-//   不让读取面静默退化成全文。
+//   正向断言假绿。按行剔除会漏掉折行的续行，所以整块剔除；两个定位点任一找不到、或剔除后
+//   仍留有修订记录行，都抛错，不让读取面静默退化成全文。
 // - 负向锚打在蓝图全文（含修订块）——退役句在蓝图任何位置都不该复述。
 //
 // 退役句负向锚 = 稳定子串「变 FR」「调研报告是交付物」「不许悬置」，打在退役句的三个历史
@@ -27,11 +27,20 @@
 // 全部去掉，两侧同规。
 // 锚词取法：带箭头的条件规则钉跨箭头整句（条件与后果各钉碎片时，把规则反转仍是绿的）；
 // 裸关键词会被同文件内无关句子满足的（蓝图规格行里的「沉默不算」「禁止代挑」
-// 「need 谱系前缀」各有多处命中），取其所在句的字面；同一句在同文件两节各有一份时（蓝图 §8
-// 决策点全表与 §11.13、蓝图 §11.13 与 §11.14、dev-clarify description 与 §4 出口、research.md
-// 时序节与落盘映射节），场景点名的节各钉一条接上前后文的独占字面，删掉任一份都会红；前后文
-// 只差标点的那一句（拍板不通过句）改钉它在蓝图规格行的出现次数。负向锚按 spec 点名的稳定
-// 子串字面使用。
+// 「need 谱系前缀」各有多处命中），取其所在句的字面。负向锚按 spec 点名的稳定子串字面使用。
+//
+// 同一句话的镜像，受守护的边界：
+// - 同一句在同文件两节各有一份、而场景点名了其中一节时，点名的那一份接上前后文钉一条独占
+//   字面，删掉它会红。受守护的是：蓝图 §11.13 出口门禁、蓝图 §11.13 references 摘要行、
+//   蓝图 §11.14 出口段、dev-clarify §4 出口、research.md 就地联动时序节与落盘映射节（两节
+//   都点名，各钉各的）、蓝图 §11.13 与 §11.14 的拍板口径句（各接触发句）。
+// - 没有钉的两份镜像，删掉不会红：蓝图 §8 决策点全表 dev-clarify 行（括注与「报告尚未交付」
+//   句），dev-clarify description 的纯调研出口句。它们是汇总表或 description 发现面的复述，
+//   规则本体在上面那些节里。
+// - 前后文只差标点的拍板不通过句，钉它在蓝图规格行至少出现 2 次：删掉 §11.13 或 §11.14
+//   任一份会红，别处合法新增不红。
+// - 不在任何验收场景与实现决策 8 锚词清单里的句子没有守护，清单见 spec 20261123-c5e1 备注
+//   「留验收下一轮建议」。
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -56,9 +65,11 @@ const blueprintFull: Surface = { label: `${blueprintRel}（全文，含修订块
 
 /**
  * 蓝图规格行读取面：整块剔除头部修订块——自 `> 版本 ` 行起、至首个 `## ` 标题之前。
- * 定位点缺失或次序颠倒即抛错：读取面静默退化成全文，等于正向断言假绿。
+ * 读取面不可信时一律抛错，不让它静默退化成全文：
+ * - 定位点缺失或次序颠倒；
+ * - 剔除后仍有修订记录行——版本行与修订记录之间插进了二级标题，或修订块整体挪去了别处。
  */
-function blueprintSpecLines(full: string): string {
+function blueprintSpecText(full: string): string {
   const lines = full.split('\n');
   const blockStart = lines.findIndex((line) => line.startsWith('> 版本 '));
   const blockEnd = lines.findIndex((line) => line.startsWith('## '));
@@ -67,11 +78,16 @@ function blueprintSpecLines(full: string): string {
       `蓝图修订块定位失败，规格行读取面不可信：\`> 版本 \` 行下标 ${blockStart}、首个 \`## \` 标题行下标 ${blockEnd}（从 0 起；应为前者 ≥ 0 且小于后者）`,
     );
   }
-  return lines.filter((_, index) => index < blockStart || index >= blockEnd).join('\n');
+  const specLines = lines.filter((_, index) => index < blockStart || index >= blockEnd);
+  const strayRecords = specLines.filter((line) => line.startsWith('> **v')).length;
+  if (strayRecords > 0) {
+    throw new Error(`修订记录不在头部块内，规格行读取面不可信：整块剔除后仍有 ${strayRecords} 行以 \`> **v\` 开头`);
+  }
+  return specLines.join('\n');
 }
 
 /** 蓝图规格行：剔除头部修订块——正向锚只打在这里。 */
-const blueprintSpec: Surface = { label: `${blueprintRel}（规格行）`, text: blueprintSpecLines(blueprint) };
+const blueprintSpec: Surface = { label: `${blueprintRel}（规格行）`, text: blueprintSpecText(blueprint) };
 const devClarify = loadSurface(path.join('skills', 'dev-clarify', 'SKILL.md'));
 const researchRef = loadSurface(path.join('skills', 'dev-clarify', 'references', 'research.md'));
 const devResearch = loadSurface(path.join('skills', 'dev-research', 'SKILL.md'));
@@ -81,7 +97,7 @@ const method = loadSurface(path.join('docs', 'METHOD.md'));
 const concepts = loadSurface(path.join('docs', 'concepts.md'));
 
 /** 退役句的稳定子串：三个历史落点同取，带括注的原句字面拦不住改括注的写回。 */
-const RETIRED_FRAGMENTS = ['变 FR', '调研报告是交付物', '不许悬置'];
+const RETIRED_FRAGMENTS = ['变 FR', '调研报告是交付物', '不许悬置'] as const;
 
 /** 折行处理：去空白后比对——硬折行不在锚词里留痕迹。 */
 const squeeze = (text: string): string => text.replace(/\s/g, '');
@@ -259,9 +275,10 @@ test('拍板口径：成功标准逐条核销、残余风险为空或经用户�
 test('拍板不通过 → 不记账，说明差距并停在拍板点（蓝图 §11.13 与 §11.14 各一份 / dev-clarify / research.md / dev-research）', () => {
   const sentence = '拍板不通过 → 不记账，说明差距并停在拍板点';
   assertAnchored([blueprintSpec, devClarify, researchRef, devResearch], [sentence]);
-  // 蓝图 §11.13 出口门禁与 §11.14 出口各载一份同句、前后文只差标点：改钉次数，删掉任意一份都会红
+  // 蓝图 §11.13 出口门禁与 §11.14 出口各载一份同句、前后文只差标点：钉「至少 2 次」——
+  // 删掉任意一份都会红，别处再合法新增一份不红。
   const occurrences = squeeze(blueprintSpec.text).split(squeeze(sentence)).length - 1;
-  assert.equal(occurrences, 2, `「${sentence}」应在蓝图规格行出现 2 次`);
+  assert.ok(occurrences >= 2, `「${sentence}」应在蓝图规格行至少出现 2 次，实际 ${occurrences} 次`);
 });
 
 test('纯调研支出口：通读拍板 → 记账置 need fulfilled，不指路 /dev-spec（蓝图 §11.13 出口门禁 / dev-clarify §4 出口 / research.md）', () => {
