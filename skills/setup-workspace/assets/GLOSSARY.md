@@ -25,7 +25,7 @@
 |---|---|---|
 | need.draft | 需求澄清中，开放问题未清零 | dev-clarify |
 | need.confirmed | 澄清完成，可作为 spec 输入 | dev-clarify |
-| need.fulfilled | 成功标准全部核销、无未接受风险（终态） | dev-accept |
+| need.fulfilled | 成功标准全部核销、无未接受风险（终态） | dev-accept 收口序列，或纯调研支经用户通读拍板记账置位 |
 | need.reconstructed | 逆向扫描 / 迁移沉淀的 need 落盘即置：不进正向待办流（frontier 不受理），phase 照常显示 | setup-reconstruct / setup-migrate |
 | spec.draft | 规格起草中 | dev-spec |
 | spec.approved | 用户已显式批准，可拆工单 | dev-spec |
@@ -118,3 +118,4 @@
 - **方案形态** —— dev-design 的双形态之一：现状保留的"approved spec → 技术方案"路径，spec approved 后回补方案节（模块划分 / 数据流 / seam 清单 / ADR 索引）并经独立批准（第二道 approved 门）后指路 dev-plan；与分析形态共用同一张 design 产物两段续写（首次出现：need 20261120-3afe）。
 - **已装记录** —— 锁文件 `.infra-lock.json` 中一条资产的记账行（skills/plugins 账行，含指纹或版本与安装时间）：安装时写入，是卸载的「是我装的」判据——无已装记录的名字整体拒卸；`skill list`/`plugin list` 按其呈现已装面（首次出现：spec 20261122-edb2）。
 - **安装落点** —— 安装/卸载动作触碰的盘上位置，共三类：技能实体目录 `.agents/skills/<名>/`、agent 目录软链（`.claude`、`.zcode` 等项目内已存在的 agent 目录）、插件 profile 两落点（profile 的 package.json 依赖行与 `dsh.profile.bundles` 行）；技能卸载对前两类动手加清账，插件卸载对第三类经官方命令动手、两落点对账消失才清账（首次出现：spec 20261122-edb2）。
+- **纯调研需求** —— 报告即全部交付物的 need：调研报告交付后不再有实现交付物（两态归置判据 = 报告之后是否还有实现交付物——报告后无实现交付物即纯调研需求，报告后还有实现交付物即实现前调研）。两态对照：实现前调研照常经 spec / 票 / 运行管道，报告只作 need 正文依据与 spec 输入、不产生工单；纯调研需求不经 spec / 票 / 运行管道，报告交付后经用户通读拍板即记账置 need fulfilled（首次出现：need 20261122-c702；词条登记：spec 20261123-c5e1）。
