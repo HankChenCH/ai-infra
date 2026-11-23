@@ -145,7 +145,7 @@
 ## 三、产物与追溯
 
 ### frontmatter 与产物状态机〔通用·机制 + 方法自创·定义〕
-- **定位**：YAML 头部字段（id / status / spec / blocked-by / round…）表达产物身份与状态；八类产物各有固定状态机，箭头上标推进者（如 need：draft →confirmed（dev-clarify）→fulfilled（dev-accept））。check.sh 扫 frontmatter 得全貌，状态和文件不出现两张皮。每个技能只碰自己负责的那段状态。
+- **定位**：YAML 头部字段（id / status / spec / blocked-by / round…）表达产物身份与状态；八类产物各有固定状态机，箭头上标推进者（如 need：draft →confirmed（dev-clarify）→fulfilled（dev-accept，或纯调研支经用户通读拍板记账置位——手动形态 dev-research 出口、就地联动形态 dev-clarify 出口））。check.sh 扫 frontmatter 得全貌，状态和文件不出现两张皮。每个技能只碰自己负责的那段状态。
 - **来源**：YAML front matter 惯例（Jekyll 等静态站点工具链）；状态机应用为本会话定义。
 - **落点**：蓝图 §6.1 总表。
 
