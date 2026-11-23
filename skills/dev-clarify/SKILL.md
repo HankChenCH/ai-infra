@@ -66,18 +66,22 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
    过滤闸后转「假设与风险」（按代价×不确定度排序）；明确不做 → 「范围与非目标」。
    节内只允许留拍板记录，一行一条：`D2 → 结论（一句理由；去向 FR-N/假设 An）`。
    "转调研" = 就地触发 dev-research（联动时序：研究问题三要素规整 → 问题清单经用户确认 → 检索出报告 → 结论回填 need → 之后才定稿）；
-   报告作 need 正文依据与 spec 输入，不产生工单；前置 = 触发 dev-research 前 need 已取号在盘（未取号先取号落草稿骨架，见第 2 步）；就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索）；
+   报告作 need 正文依据与 spec 输入，不产生工单；结论回填 need 归本技能按三路归置在定稿前承载，注明报告编号；
+   前置 = 触发 dev-research 前 need 已取号在盘（未取号先取号落草稿骨架，供报告取号带 need 谱系前缀）；
+   就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索），调用时给出 need 编号；
+   该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告 → 不重复触发，直接回填；
    用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」。
 2. **need 未取号则取号、已取号则在既有文件成稿**（首次落盘前、最迟触发 dev-research 前办）：
    - 未取号 → 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
-     占位文件路径，号由入口原子分配、全历史唯一；随即落草稿骨架（frontmatter `id` 填文件名的
-     ID 段，形如 `YYYYMMDD-4hex`，加七节标题）——触发 dev-research 前 need 已取号在盘。
-   - 已取号 → 在既有文件成稿，不重复取号。
-   - 成稿：用 need 模板写正文覆盖该占位文件（frontmatter `id` 填文件名的 ID 段，形如
-     `YYYYMMDD-4hex`），运行 `.sdlc/check.sh validate <返回的路径>` 必须通过；不过 → 修复后重跑。
+     占位文件路径，号由入口原子分配、全历史唯一；随即落草稿骨架（按 need 模板 frontmatter
+     `id` / `status: draft` / `created`，加七节标题）——触发 dev-research 前 need 已取号在盘。
+   - 已取号 → 沿用既有文件，不重复取号。
+   - 成稿（两态同款）：未取号 = 写入返回的占位路径，已取号 = 在既有文件上补齐、不覆盖已落盘内容；
+     用 need 模板写正文（frontmatter `id` 填文件名的 ID 段，形如 `YYYYMMDD-4hex`），运行
+     `.sdlc/check.sh validate <该文件路径>` 必须通过；不过 → 修复后重跑。
 3. **定稿（决策点，必须问）**：完整念一遍七节内容，请求确认。沉默不算确认，
    要改 → 回 §3 改完重念。通过 → `status: confirmed`、追加 `confirmed: <今日>`，
-   重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`。
+   重跑 validate 与 `.sdlc/check.sh publish`；need 首次 publish 后补投——对该 need 名下已落盘、带 need 谱系前缀且尚未投影的调研报告逐张补跑 publish（映射账本无该报告行 = 尚未投影；报告产出时 need 尚未投影、被适配器警告跳过；已投影的不重复——重复投影会追加重复评论），补投早于纯调研记账；提交留痕 `[trivial]`。
    投影按 METHOD「投影约定」执行：config.sh TRACKER=codeup 且会话有 Codeup MCP 工具走 MCP 路径零 REST 配置，其余一律走 REST 适配器同口径，失败警告跳过 exit 0 不阻断。
 4. **出口（按两态分叉，判据 = 报告之后是否还有实现交付物）**：
    - 常规 need 与实现前调研（报告后还有实现交付物）：抛决策问题："need NNNN 已 confirmed，
