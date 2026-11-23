@@ -26,7 +26,8 @@ description: 把技术调研问题变成 docs/research/ 的带一手来源引用
 3. **一报告一主题**：多个问题同属一个决策或一个技术域才并一张报告；
    不相干的问题各立各的。
 4. **对应 need 确认**：入口确认本次调研对应的 need 编号并读其全文——dev-clarify 就地联动时取 dev-clarify 给出的编号；
-   need 已 confirmed → 手动形态，走本技能出口记账；need 仍为 draft（就地联动，或 need 尚为 draft 的手动触发）→ 只交付报告、不记账，拍板与记账归 dev-clarify 定稿后的出口；
+   need 已 confirmed → 手动形态，走本技能出口（纯调研支的记账在此）；need 仍为 draft（就地联动，或 need 尚为 draft 的手动触发）→ 只交付报告、不记账，拍板与记账归 dev-clarify 定稿后的出口；
+   该 need 名下已有带前缀且覆盖本次问题清单的报告 → 按 §5 重入规则处理，不另立；
    不在澄清中且 need 未 confirmed → 停止并指路 /dev-clarify；不可唯一确定 → 列出候选请用户点名，禁止代挑。
    无对应 need 的独立调研照常进行（取号不带父参数）。
 
@@ -60,6 +61,7 @@ description: 把技术调研问题变成 docs/research/ 的带一手来源引用
    用下面的模板写正文覆盖占位文件（frontmatter `id` 填文件名的 ID 段），运行 `.sdlc/check.sh validate <占位路径>`
    必须通过；不过 → 修复后重跑。再跑 `.sdlc/check.sh publish <占位路径>`——
    need 尚未投影时（就地联动形态与 need 尚为 draft 的手动触发）报告首次 publish 会被适配器警告跳过，属预期，由 dev-clarify 在定稿、need 首次 publish 后补投；
+   need 已 confirmed 但从未投影（定稿时投影失败或当时未配 tracker）时手动形态的报告同样跳过，遇此警告先重发 need 再重发报告；
    need 已投影后产出的报告随 publish 即挂。提交留痕 `[trivial]`。
 3. **出口（指路，不自动串联）**：给用户念结论速览，然后按下述两态归置出口：
    **纯调研支指路（通读拍板 → 记账置 fulfilled，不经 spec）**——判据 = 报告之后是否还有实现交付物：
