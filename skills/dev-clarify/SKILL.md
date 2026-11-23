@@ -40,7 +40,7 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
   | 用例驱动 | 交互密集、流程分支多 | references/use-case.md |
   | 风险驱动分轮 | 需求模糊、决策短期不确定 | references/risk-mvp.md |
   | 原型驱动 | UI/体验说不清 | references/prototype.md |
-  | 调研驱动 | 技术/外部依赖不确定 | references/research.md |
+  | 调研驱动 | 技术/外部依赖不确定 | references/research.md（就地联动 dev-research——报告落盘回填后才定稿，报告先于 spec） |
 
   开场亮牌"我建议用 X，因为 Y"；用户可否决、可中途换。确认后才 Read 该方法
   文件，一次只载一个。方法决定怎么聊，模板决定落成什么样。
@@ -65,7 +65,9 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
 1. **三路归置**：每条开放问题必须有归属——有答案 → 写进正文对应节；答不了 →
    过滤闸后转「假设与风险」（按代价×不确定度排序）；明确不做 → 「范围与非目标」。
    节内只允许留拍板记录，一行一条：`D2 → 结论（一句理由；去向 FR-N/假设 An）`。
-   "转调研"不许悬置：要调研的变 FR（调研报告是交付物）或转假设。
+   "转调研" = 就地触发 dev-research（联动时序：研究问题三要素规整 → 问题清单经用户确认 → 检索出报告 → 结论回填 need → 之后才定稿）；
+   报告作 need 正文依据与 spec 输入，不产生工单；
+   用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」。
 2. 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
    占位文件路径，号由入口原子分配、全历史唯一；用 need 模板写正文覆盖该占位文件
    （frontmatter `id` 填文件名的 ID 段，形如 `YYYYMMDD-4hex`），运行
