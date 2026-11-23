@@ -1,6 +1,6 @@
 ---
 name: dev-clarify
-description: 把用户的想法澄清成 docs/needs/ 的 need 纪要——开发流程的入口技能。内置方法论选择器（视点/用例/风险/原型/调研五法，开场亮牌可换），采集走校准阶梯（能查证的不问人、要选择的画成决策卡、UI/UX 说不清就做可点 HTML 原型），开放问题三路归置清零后经用户定稿置 confirmed，出口建议进 dev-spec。当用户说"我有个想法""我想做 X""帮我把需求理清楚""整理需求""记个需求"，或全库还没有任何流程产物时使用——想法一句话就能说清且无未知的，会在入口亮牌建议直接 dev-spec 或 [trivial] 小修。
+description: 把用户的想法澄清成 docs/needs/ 的 need 纪要——开发流程的入口技能。内置方法论选择器（视点/用例/风险/原型/调研五法，开场亮牌可换），采集走校准阶梯（能查证的不问人、要选择的画成决策卡、UI/UX 说不清就做可点 HTML 原型），开放问题三路归置清零后经用户定稿置 confirmed，出口建议进 dev-spec（纯调研需求走纯调研支出口：通读拍板 → 记账置 need fulfilled，不指路 /dev-spec；报告尚未交付 → 建议 /dev-research 交付报告）。当用户说"我有个想法""我想做 X""帮我把需求理清楚""整理需求""记个需求"，或全库还没有任何流程产物时使用——想法一句话就能说清且无未知的，会在入口亮牌建议直接 dev-spec 或 [trivial] 小修。
 ---
 
 # dev-clarify：把想法澄清成 need
@@ -66,7 +66,7 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
    过滤闸后转「假设与风险」（按代价×不确定度排序）；明确不做 → 「范围与非目标」。
    节内只允许留拍板记录，一行一条：`D2 → 结论（一句理由；去向 FR-N/假设 An）`。
    "转调研" = 就地触发 dev-research（联动时序：研究问题三要素规整 → 问题清单经用户确认 → 检索出报告 → 结论回填 need → 之后才定稿）；
-   报告作 need 正文依据与 spec 输入，不产生工单；
+   报告作 need 正文依据与 spec 输入，不产生工单；就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索）；
    用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」。
 2. 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
    占位文件路径，号由入口原子分配、全历史唯一；用 need 模板写正文覆盖该占位文件
@@ -76,9 +76,14 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
    要改 → 回 §3 改完重念。通过 → `status: confirmed`、追加 `confirmed: <今日>`，
    重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`。
    投影按 METHOD「投影约定」执行：config.sh TRACKER=codeup 且会话有 Codeup MCP 工具走 MCP 路径零 REST 配置，其余一律走 REST 适配器同口径，失败警告跳过 exit 0 不阻断。
-4. **出口**：抛决策问题："need NNNN 已 confirmed，建议 /dev-spec 开 round 1，
-   范围可从假设与风险表中代价最高的圈起；结构非显而易见时建议先 /dev-design
-   做系统分析再进 spec。"分轮归 dev-spec，只指路不代定。
+4. **出口（按两态分叉，判据 = 报告之后是否还有实现交付物）**：
+   - 常规 need 与实现前调研（报告后还有实现交付物）：抛决策问题："need NNNN 已 confirmed，
+     建议 /dev-spec 开 round 1，范围可从假设与风险表中代价最高的圈起；结构非显而易见时
+     建议先 /dev-design 做系统分析再进 spec。"分轮归 dev-spec，只指路不代定。
+   - **纯调研支出口（通读拍板 → 记账置 need fulfilled，不指路 /dev-spec）**——纯调研需求（报告即全部交付物，报告后无实现交付物）：
+     报告尚未交付 → 建议 /dev-research 交付报告（交付后的拍板与记账归 dev-research 出口手动形态，本技能到此为止）；
+     就地联动产出的报告已随定稿回填 → 定稿后请用户通读拍板，拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算；
+     拍板通过 → 会话记账置 need fulfilled（need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，对 need 重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`）。
 
 ## 5. 中断与交接
 
