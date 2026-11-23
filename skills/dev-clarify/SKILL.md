@@ -66,12 +66,15 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
    过滤闸后转「假设与风险」（按代价×不确定度排序）；明确不做 → 「范围与非目标」。
    节内只允许留拍板记录，一行一条：`D2 → 结论（一句理由；去向 FR-N/假设 An）`。
    "转调研" = 就地触发 dev-research（联动时序：研究问题三要素规整 → 问题清单经用户确认 → 检索出报告 → 结论回填 need → 之后才定稿）；
-   报告作 need 正文依据与 spec 输入，不产生工单；就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索）；
+   报告作 need 正文依据与 spec 输入，不产生工单；前置 = 触发 dev-research 前 need 已取号在盘（未取号先取号落草稿骨架，见第 2 步）；就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索）；
    用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」。
-2. 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
-   占位文件路径，号由入口原子分配、全历史唯一；用 need 模板写正文覆盖该占位文件
-   （frontmatter `id` 填文件名的 ID 段，形如 `YYYYMMDD-4hex`），运行
-   `.sdlc/check.sh validate <返回的路径>` 必须通过；不过 → 修复后重跑。
+2. **need 未取号则取号、已取号则在既有文件成稿**（首次落盘前、最迟触发 dev-research 前办）：
+   - 未取号 → 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
+     占位文件路径，号由入口原子分配、全历史唯一；随即落草稿骨架（frontmatter `id` 填文件名的
+     ID 段，形如 `YYYYMMDD-4hex`，加七节标题）——触发 dev-research 前 need 已取号在盘。
+   - 已取号 → 在既有文件成稿，不重复取号。
+   - 成稿：用 need 模板写正文覆盖该占位文件（frontmatter `id` 填文件名的 ID 段，形如
+     `YYYYMMDD-4hex`），运行 `.sdlc/check.sh validate <返回的路径>` 必须通过；不过 → 修复后重跑。
 3. **定稿（决策点，必须问）**：完整念一遍七节内容，请求确认。沉默不算确认，
    要改 → 回 §3 改完重念。通过 → `status: confirmed`、追加 `confirmed: <今日>`，
    重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`。
@@ -82,8 +85,9 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
      建议先 /dev-design 做系统分析再进 spec。"分轮归 dev-spec，只指路不代定。
    - **纯调研支出口（通读拍板 → 记账置 need fulfilled，不指路 /dev-spec）**——纯调研需求（报告即全部交付物，报告后无实现交付物）：
      报告尚未交付 → 建议 /dev-research 交付报告（交付后的拍板与记账归 dev-research 出口手动形态，本技能到此为止）；
-     就地联动产出的报告已随定稿回填 → 定稿后请用户通读拍板，拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算；
-     拍板通过 → 会话记账置 need fulfilled（need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，对 need 重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`）。
+     报告已交付并已随定稿回填（含就地联动产出与定稿前手动触发产出的报告）→ 定稿后请用户通读拍板，拍板 = 成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算；
+     拍板通过 → 会话记账置 need fulfilled（need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，对 need 重跑 validate 与 `.sdlc/check.sh publish`，提交留痕 `[trivial]`）；
+     拍板不通过 → 不记账，说明差距并停在拍板点（need 保持 confirmed），差距归位后重走拍板。
 
 ## 5. 中断与交接
 
