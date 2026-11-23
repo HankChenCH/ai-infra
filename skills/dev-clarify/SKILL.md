@@ -73,8 +73,8 @@ GLOSSARY.md 项目术语 → 粗探相关代码现状。落盘前用 Skill 工�
    用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」。
 2. **need 未取号则取号、已取号则在既有文件成稿**（首次落盘前、最迟触发 dev-research 前办）：
    - 未取号 → 运行 `.sdlc/check.sh claim need <slug>` 取号（slug 用 ASCII 小写短横线）——返回
-     占位文件路径，号由入口原子分配、全历史唯一；随即落草稿骨架（按 need 模板 frontmatter
-     `id` / `status: draft` / `created`，加七节标题）——触发 dev-research 前 need 已取号在盘。
+     占位文件路径，号由入口原子分配、全历史唯一；随即落草稿骨架——
+     草稿骨架 = 按 need 模板 frontmatter（`id` / `status: draft` / `created`）加七节标题——触发 dev-research 前 need 已取号在盘。
    - 已取号 → 沿用既有文件，不重复取号。
    - 成稿（两态同款）：未取号 = 写入返回的占位路径，已取号 = 在既有文件上补齐、不覆盖已落盘内容；
      用 need 模板写正文（frontmatter `id` 填文件名的 ID 段，形如 `YYYYMMDD-4hex`），运行
