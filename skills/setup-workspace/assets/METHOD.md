@@ -87,7 +87,7 @@ frontmatter 是 check.sh 的解析依据，全流程单一真相。列表字段�
 
 | 产物 | frontmatter 字段 | 状态机（箭头上是推进者） |
 |---|---|---|
-| need | `id` `status` | draft →confirmed（dev-clarify）→fulfilled（dev-accept，末轮通过且成功标准核销、无未接受风险）；逆向产物落盘即 reconstructed（setup-reconstruct / setup-migrate，不进正向待办流） |
+| need | `id` `status` | draft →confirmed（dev-clarify）→fulfilled（dev-accept，末轮通过且成功标准核销、无未接受风险；或纯调研支经用户通读拍板记账置位——手动形态 dev-research 出口、就地联动形态 dev-clarify 出口）；逆向产物落盘即 reconstructed（setup-reconstruct / setup-migrate，不进正向待办流） |
 | spec | `id` `status` `need?` `round` | draft →approved（dev-spec，须用户批准）→done（dev-accept 验收通过，且名下过程档已清扫）；逆向产物落盘即 reconstructed（setup-reconstruct / setup-migrate，不进正向待办流） |
 | design | `id` `spec?` `need?` `status` | draft →analyzed（dev-design，分析走查批准）→approved（dev-design / design-deliver）；design-deliver 简单 spec 自 draft 直达 approved；analyzed 必有 need、approved 必有 spec、draft 两者至少其一 |
 | ticket | `id` `type: feature\|fix` `spec` `blocked-by: []` `repos?` `status` | ready（dev-plan）→in-progress / implemented（dev-implement）→done（dev-ship 合并后） |
@@ -109,7 +109,7 @@ frontmatter 是 check.sh 的解析依据，全流程单一真相。列表字段�
 
 **V 模型右臂**（集成验证）：每个分解层有对应验证——need 对业务成功标准（dev-accept 核销）、spec 对集成级场景、design 对 seam 边界测试、ticket 对单元/接口测试。结构性预防靠 dev-plan 的 tracer-bullet 垂直切片（每票切穿全部层），dev-accept 是第二道保险。
 
-**循环模型**（MVP 分轮）：need 模板固定含"假设与风险"节，按"错了代价 × 不确定度"排序；spec 带 `round: N`，round 1 覆盖风险最大的最小范围；dev-accept 的验收报告含"假设验证 / 残余风险 / 下一轮建议"，其出口即回转点。退出条件机械化：need 终态 `fulfilled`，由 dev-accept 在"成功标准全部核销 + 无未接受风险"时推进。
+**循环模型**（MVP 分轮）：need 模板固定含"假设与风险"节，按"错了代价 × 不确定度"排序；spec 带 `round: N`，round 1 覆盖风险最大的最小范围；dev-accept 的验收报告含"假设验证 / 残余风险 / 下一轮建议"，其出口即回转点。退出条件机械化：need 终态 `fulfilled`，由 dev-accept 在"成功标准全部核销 + 无未接受风险"时推进，或由纯调研支经用户通读拍板记账置位（手动形态 dev-research 出口、就地联动形态 dev-clarify 出口，不经 spec）。
 
 ## 7. check.sh 子命令参考
 
