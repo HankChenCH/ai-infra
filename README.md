@@ -2,7 +2,7 @@
 
 **门禁式 SDLC 技能套件 + 其 npm 安装器 `@hankchen/infra`。**
 
-把「团队 + AI 协作开发」的流程规矩变成机器门禁：31 个技能（均已实现）驱动一条脊柱流水线，九类落盘产物承载全部流程状态，`.sdlc/check.sh` 把规矩变成机器判断。一次软件变更从想法送到验收，全程可中断、可审计、可续接：
+把「团队 + AI 协作开发」的流程规矩变成机器门禁：32 个技能（31 已实现、dev-blueprint 建设中）驱动一条脊柱流水线，九类落盘产物承载全部流程状态，`.sdlc/check.sh` 把规矩变成机器判断。一次软件变更从想法送到验收，全程可中断、可审计、可续接：
 
 ```
 need（澄清）→ spec（规格）→ plan（拆票）→ implement（实现）→ review（评审）→ ship（交付）→ accept（验收）
@@ -41,7 +41,7 @@ npx @hankchen/infra plugin ls                     # 列已装插件（按 profil
 |---|---|
 | [docs/getting-started.md](./docs/getting-started.md) | **安装与接入**：技能/插件安装与卸载命令、清单视图、npm 镜像代理、接入后的工作区、check.sh 子命令 |
 | [docs/design-rationale.md](./docs/design-rationale.md) | **设计动机与特色**：要解决的三种失控、四层防线、七个特色设计、致谢 |
-| [docs/skills.md](./docs/skills.md) | **技能清单**：31 个技能的分组职责表 |
+| [docs/skills.md](./docs/skills.md) | **技能清单**：32 个技能的分组职责表 |
 | [docs/maintainer-guide.md](./docs/maintainer-guide.md) | **维护者指南**：仓库结构、src 模块、开发命令与类型硬约束、已知坑、发布流程 |
 | [docs/METHOD.md](./docs/METHOD.md) | 流程规范（唯一来源） |
 | [docs/sdlc-skills-blueprint.md](./docs/sdlc-skills-blueprint.md) | 设计蓝图（唯一设计真相源；治理规则：先改文档再改技能） |
@@ -53,4 +53,4 @@ npx @hankchen/infra plugin ls                     # 列已装插件（按 profil
 
 ## 项目状态
 
-31 个技能均已实现（含 design-\* 界面设计套件 4 个，spec 0015 交付；dev-quick-implement 快通道随 spec 20261111-1dcd 交付）。
+32 个技能（31 已实现、dev-blueprint 蓝图维护技能建设中随 spec 20261124-6c73 在途；含 design-\* 界面设计套件 4 个，spec 0015 交付；dev-quick-implement 快通道随 spec 20261111-1dcd 交付）。
