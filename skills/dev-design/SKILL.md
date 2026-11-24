@@ -118,6 +118,9 @@ design 产物两段续写，中间态 `analyzed`，终态 `approved`。
 3. **出口**：抛决策问题"analyzed 已落盘，缺口与矛盾节随 /dev-spec 归置
    （落本 spec / 列下一轮建议 / 判非目标），建议进 /dev-spec"——只指路
    不代跑（不自动串联）。
+4. **诞生亮牌（项目蓝图）**：分析形态走查批准后亮牌建议调 dev-blueprint 立骨架
+   ——用户确认才动、亮牌可拒绝（第一道 approved 门，方案批准不是前置）；
+   拒绝 → 照常进 /dev-spec，不拦截出口。
 
 ### 5.2 方案形态出口（第二道门）
 
@@ -137,7 +140,8 @@ design 产物两段续写，中间态 `analyzed`，终态 `approved`。
      字段，文件名不重命名。
 3. 命中三条件的决策逐条按 adr 模板落盘 `docs/adr/NNNN-slug.md`
    （`status: accepted`）；新决策取代旧 ADR → 旧的置 `superseded` 并追加
-   日期，不删除。
+   日期，不删除。置 ADR accepted 时亮牌蓝图待回写，建议调 dev-blueprint
+   承接回写（round 1 漂移检测仅此一类；只亮牌不代跑）。
 4. 抛决策问题："方案批准吗？"展示模块划分与关键取舍，给默认建议。
    **沉默不算批准**。批准 → `status: approved`、追加 `approved: <今日>`，
    重跑 validate 与 publish；不批准 → 意见写回 analyzed / draft 续改。
