@@ -119,7 +119,7 @@ pre-push 同理，子命令换为 `pre-push`（无参数转发）。写完 `chmo
 
 ## 2. AGENTS.md 收口（§4，最后一步执行）
 
-哨兵块固定文本（措辞勿改，与 assets/METHOD.md、GLOSSARY.md 的引用关系已内置）：
+哨兵块固定文本（措辞勿改，与 assets/METHOD.md、GLOSSARY.md 的引用关系已内置；`assets/AGENTS.md` 开箱模板的哨兵块与本固定文本逐字一致，改一处须同步另一处）：
 
 ```markdown
 <!-- sdlc:begin 由 setup-workspace 管理，勿在此块内手改 -->
@@ -133,7 +133,7 @@ pre-push 同理，子命令换为 `pre-push`（无参数转发）。写完 `chmo
 ```
 
 三态：
-1. 文件不存在 → 创建，内容为一级标题 `# AGENTS.md`、空行、哨兵块；收尾报告说明已代建。
+1. 文件不存在 → 用 `assets/AGENTS.md` 模板创建（一级标题 + 项目速览区含蓝图指针行占位——指向 docs/blueprints/、落非哨兵区 + 哨兵块，全以模板为准）；收尾报告说明已代建。
 2. 存在但无 `<!-- sdlc:begin` → 原内容不动，文末空一行后追加哨兵块。
 3. 已有标记 → 只替换 `<!-- sdlc:begin …` 到 `<!-- sdlc:end -->` 之间的内容，块外一字不动。
 
