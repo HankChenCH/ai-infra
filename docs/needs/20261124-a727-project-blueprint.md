@@ -1,7 +1,8 @@
 ---
 id: 20261124-a727
-status: confirmed
+status: fulfilled
 created: 2026-11-24
+fulfilled: 2026-11-24
 confirmed: 2026-11-24
 ---
 # 项目蓝图能力——套件为消费项目提供项目级设计真相源
