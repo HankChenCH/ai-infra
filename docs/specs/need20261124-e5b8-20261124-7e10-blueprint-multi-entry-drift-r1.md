@@ -1,10 +1,11 @@
 ---
 id: 20261124-7e10
-status: approved
+status: done
 need: 20261124-e5b8
 round: 1
 created: 2026-11-24
 approved: 2026-11-24
+done: 2026-11-24
 ---
 # 项目蓝图深化 round 1：多入口组织、广谱漂移检测与漂移信号持久载体
 
