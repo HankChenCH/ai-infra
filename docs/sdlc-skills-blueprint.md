@@ -7,7 +7,7 @@
 
 # SDLC 技能集设计蓝图
 
-> 版本 1.46 · 2026-11-23（初版 1.0 · 2026-10-25）· 本文档是这套技能集的唯一设计真相源。
+> 版本 1.48 · 2026-11-24（初版 1.0 · 2026-10-25）· 本文档是这套技能集的唯一设计真相源。
 >
 > **v1.1 修订记录（setup-workspace 实现前定稿）**：§5.2 新增 docs/standards/，升级 GLOSSARY.md 与 CODING_STANDARDS.md 语义；§5.3 哨兵块文本更新（去 src/ 假定，增 GLOSSARY 与标准索引引用）；§5.4 ticket 允许 in-progress 重入、all 增加零检查命令行为与 RUN_PREFIX 包裹、publish 适配器缺失行为；§5.5 config.sh 新增 BASE_REF / RUN_ENV / RUN_PREFIX / PKG_MGR / CODE_DIRS；§6.1 增列表字段单行注记；§11.1 setup-workspace 规格全面细化（智能体识别、单仓/monorepo、环境探测、标准导入、按需加载）；§13.1 附件分 assets/ 与 references/ 两类；§14 starters 定稿落点与新增待定项。实现期间补记：轻门禁由 pre-commit 修正为 **commit-msg** hook（git 时点事实：pre-commit 阶段消息未写入，机械校验无从执行）。
 >
@@ -66,6 +66,9 @@
 > **v1.44 修订记录（dev-execute 预演门禁执行纪律两条折回，2026-11-22，fix 票 20261122-fe59 / issue #340）**：run-mechanics §6 预演节补两条会话侧运行纪律（出处 = spec 0016 运行两次假绿实证教训，2026-11-03 运行前暂存悬置 19 天、唯一现存载体为 docs/research/20261122-f7a2-stash-rescue-archive.md，本票为该教训的抢救落地）。④ **门禁命令执行细则**——门禁命令一律以仓库根为 cwd（会话工作目录漂移时 `.sdlc/check.sh: no such file or directory` 被管道尾部命令吞掉、退出码 0 假绿），退出码直取（zsh `pipestatus[1]` / bash `PIPESTATUS[0]`），`长命令 | tail` 的管道尾退出码不得当门禁判据，后台跑门禁 cwd 显式锚定 + 真实退出码落日志；⑤ **check-all 系门红先甄别再处置**——进程异常终止形态（输出止于用例名中间、无失败摘要）+ 同套件复跑全绿 + 代码零变化 → 判环境偶发，报用户授权后复跑一次、再红停机问人；授权复跑策略可编入脚本（rehearse 系确定性门：红则复跑一次，绿则继续、再红停机问人）；可复现的失败摘要（真代码回归特征）不经此通道，直走 SKILL.md §8 预演失败流。范围拍板：第三条教训「恢复前核对子代理模型锚定」暂缓不进本票（跨会话续接低频 + 语境未复验），配方保全于留档待真踩到再落地。静态守护：test/unit 静态断言钉两条纪律关键词面与蓝图 v1.44 登记（手法先例 ci-workflow.test.ts / codeup-projection-sync.test.ts）。零改动声明：check.sh、SKILL.md、编排链、门禁语义不动——本版仅 run-mechanics §6 参考件折回 + 蓝图登记，预演门本体（§6 第 1–3 条）与运行内人工交互定位零变化。
 > **v1.45 修订记录（tracker 投影聚合口径三腿归一——github/gitlab 腿反转全产物独立 issue 口径，2026-11-22，need 20261122-f5fc / spec 20261122-cda7 / 票 20261122-4295）**：v1.41 拍板 D6 的「github/gitlab 腿维持全产物独立 issue 口径、两腿分叉为拍板结果」被使用反馈反转——一次需求开发的行为链（need → spec → design/adr/research → 评审 → 验收）须在单个远端对象内按时间线完整可见。① 双腿适配器改造（github.sh / gitlab.sh 与 assets 分发副本双份同文）：受理面按 docs/ 产物目录判定（codeup 骨架平移）——need 建聚合单（Codeup 需求单 category=Req / GitHub-GitLab issue）、带 need 谱系前缀知识档挂聚合单评论、带 spec 名义归属前缀的评审/验收/总览经定位链挂评论、票（审计留痕 = commit 引用）与无 need 谱系独立知识档不投；时间线不可变（edit-in-place 废止，演进一律追加评论）；终态关闭触发面收敛仅 need 形态；映射账本 need 行第二列恒自身单号、评论形态行第二列记承载需求单号，旧代际行不回改不迁移，评论定位恒走账本需求单行（需求单行两代语义同构，免行版本标记）。② 评审取号加 spec 名义归属父参数（`claim review <slug> spec <spec-ID>`）：文件名获得 `spec<父ID>-` 谱系前缀支撑定位链，跨 spec 真实覆盖面仍由评审 frontmatter `tickets:` 声明（「名义归属」词条入 GLOSSARY）；check.sh 取号机制类型无关零改动，pre-push 覆盖校验零改动。③ METHOD 总原则审计链句与 §7.1 受理面表/幂等共账/终态关闭、GLOSSARY「投影」词条与「名义归属」新词条同批（assets 双副本整文件 cp 同步，dual-copy-assets #4）。④ 测试面：github/gitlab 适配器进程级替身两个新测试文件（假 gh/glab PATH 前置，先例 v1.41⑤），codeup-projection-sync.test.ts 同批重指向并补双腿分发副本同文断言与 dev-review 取号话术断言。⑤ 集成级人工段：github 腿真环境端到端冒烟由验收承载；gitlab 腿无实环境（替身背书契约面），补验路径留验收段显式拍板（need A4 已接受）。⑥ 存量投影不动：既有已映射对象不迁移不删除不回填，作为历史审计留存（need 拍板 D4）。⑦ 零改动核对：§11.1 决策①经查无旧口径表述残留，本轮零改动（spec 枚举面含 §11.1 系完备性列举）。
 > **v1.46 修订记录（调研归位——澄清就地联动 dev-research、逃生舱退役、调研分两态归置，2026-11-23，need 20261122-c702 / spec 20261123-c5e1 / 票 20261123-9492；运行中修订出处 = 票 20261123-9492 评审 20261123-ad31 标准轴与 Spec 轴独立同判的三条阻断 F1–F3；第二版出处 = 同评审复审——标准轴新判阻断「只交付报告」句回填主语、Spec 轴复审异议 A（need 谱系前缀漏载）与 D（回填条件与拍板不通过出口）；第三版出处 = 同评审复审二——两轴独立同判阻断「就地联动形态下报告投影不会发生」、标准轴建议 6、Spec 轴建议 4 与 need 全文比对异议 A/B/C；第四版微调出处 = 同评审复审三——两轴均零阻断，标准轴建议 4、Spec 轴建议 2 与未计数边角，全部为文档同步；spec 修订随票四次重开落地）**：起因 = 三路归置「转调研」支的旧逃生舱（要调研的研究问题写成 FR，旧句括注 need 0001 先例）把系统调研级问题送进 spec → 票 → 实现管道，调研票被 dev-implement 纪律执行而 dev-research 调研纪律全程不生效；联动触发只有触发面描述、时序从未定义，报告没有机会先于 spec 落盘。① §11.13 三路归置末句改写：「转调研」= 就地触发 dev-research，联动时序 = 研究问题三要素规整 → 问题清单经用户确认 → 检索出报告 → 结论回填 need → 之后才定稿，报告作 need 正文依据与 spec 输入、不产生工单；结论回填 need 时注明报告编号；前置 = 触发 dev-research 前 need 已取号在盘（未取号先取号落草稿骨架，供报告取号带 need 谱系前缀——括注尾与技能正文同句）；就地触发的执行机制 = 用 Skill 工具调用 dev-research 就地联动（不自行检索），调用时给出 need 编号，该 need 名下已有带 need 谱系前缀且覆盖该问题清单的报告 → 不重复触发、直接回填，蓝图与技能同句；用户拒绝联动或 dev-research 不可用 → 过查证过滤闸转假设，条目标注「未经系统调研」（定稿不被调研卡死，风险仍诚实可见；旧句括注的 need 0001 先例引用随句删除，历史产物不回改）。② §9 方法表调研驱动行核心动作扩为就地联动 dev-research——报告落盘回填后才定稿，报告先于 spec。③ §11.14 触发行补两进入形态（dev-clarify 联动就地触发 + 用户手动；形态① = dev-clarify 调研驱动联动就地触发，问题清单确认后检索，是 dev-clarify 直接调用、不经 sdlc next-mode 路由表），出口段补纯调研支指路——两态归置判据 = 报告之后是否还有实现交付物：实现前调研照常指路 dev-spec（报告只作 spec 输入，不产生工单；引导决策问题限定到实现前调研——复审标准轴建议）；纯调研需求（报告即全部交付物，报告后无实现交付物）不经 spec / 票 / 运行管道，落点按进入形态归位（F2：就地联动形态报告交付时 need 尚未定稿，由 dev-research 记账会越序置终态、再被定稿覆写）——就地联动形态与 need 尚为 draft 的手动触发：dev-research 只交付报告，不记账、不写 need（结论回填 need 由 dev-clarify 按三路归置在定稿前承载，并注明报告编号），拍板与记账交回 dev-clarify 出口在定稿之后承载（复审标准轴阻断：回填要改 need 正文，不在记账例外之内；复审二：入口原把手动形态限定为须已 confirmed，会拦下澄清中的手动触发；原回填时点措辞与时序「之后才定稿」相冲，更正为「在定稿前承载」）；手动形态（need 已 confirmed 后用户触发）：报告交付后经用户通读拍板，dev-research 出口会话记账置 need fulfilled。记账只对盘上已 confirmed 的对应 need 执行，否则不记账、如实相告并指路 dev-clarify；拍板口径同 need.fulfilled 含义——成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算；拍板不通过 → 不记账，说明差距并停在拍板点（复审异议 D）；记账动作 = need `status` 改 `fulfilled`、追加 `fulfilled: <今日>`，重跑 validate 与 publish（聚合单随终态关闭），[trivial] 留痕。④ dev-research 开头句「改 need/spec…一律拒绝」与 §11.14 禁止事项「改动 need/spec 等其他产物」补记账例外（F1：同一技能对「能否改 need」指令相反）——唯一例外：手动形态纯调研支出口记账，只动 status 与 fulfilled 日期，不代写正文。⑤ §11.13 出口门禁与 §8 决策点全表 dev-clarify 行按两态分叉（F2：纯调研 need 的正向立项入口在 dev-clarify，原出口对一切 need 无条件建议 /dev-spec）：常规 need 与实现前调研照常建议 /dev-spec；纯调研支出口（通读拍板 → 记账置 need fulfilled，不指路 /dev-spec）——报告尚未交付 → 建议 /dev-research 交付报告，报告已交付并已随定稿回填（含就地联动产出与定稿前手动触发产出的报告）→ 定稿后请用户通读拍板，拍板通过 → 会话记账置 need fulfilled，拍板不通过 → 不记账、说明差距并停在拍板点。⑥ 技能侧同批（先蓝图后技能）：dev-clarify SKILL.md 方法论表调研驱动行补「就地联动 dev-research」、出口门禁三路归置条款与 ① 同句改写（含注明报告编号、取号前置与执行机制句、调用时给出 need 编号、不重复触发，括注尾与蓝图同句）、出口第 2 步改写为未取号则取号、已取号则在既有文件成稿（草稿骨架按 need 模板 frontmatter（`id` / `status: draft` / `created`）加七节标题；成稿两态同款——未取号写入返回的占位路径，已取号在既有文件上补齐、不覆盖已落盘内容）、出口第 3 步在 need 首次 publish 后补投（见 ⑩）、出口第 4 步两态分叉（回填条件 = 报告已交付并已随定稿回填，含拍板不通过出口）、description 出口句补纯调研出口，references/research.md 分工三层表系统调研行产物去向更新为「就地触发 dev-research，报告回填 need」（括注「研究问题按三要素记进 need」保留；回填动作由 dev-clarify 按三路归置在定稿前承载）并补就地联动时序（含取号前置、执行机制句与不重复触发）与纯调研在定稿后归置的指向、落盘映射改写（报告答掉的进正文、方向取舍走决策卡、否掉的方案进非目标——既有三路保留，诚实边界三款全保留）；dev-research SKILL.md description 触发句补 dev-clarify 调研驱动就地联动与纯调研需求两形态（手动形态措辞 = need 已 confirmed 后用户触发）、入口「对应 need 确认」改为与出口一致的判据（need 已 confirmed → 手动形态走本技能出口，纯调研支的记账在此——实现前调研的 need 也可能已 confirmed、出口并不记账，复审三收口；need 仍为 draft → 只交付报告、不记账，拍板与记账归 dev-clarify 定稿后的出口；已有带前缀且覆盖本次问题清单的报告 → 按 §5 重入规则处理，不另立，复审三补入口触发点；不在澄清中且 need 未 confirmed → 停止并指路 /dev-clarify；不可唯一确定 → 列出候选请用户点名，禁止代挑；蓝图 §11.14 输入行同句（蓝图侧句后另有 §5 定位说明））、§4 第 2 步取号带父参数 `need <need-ID>`（文件名带 need 谱系前缀，纯调研需求可按主题多张；need 尚未投影时首次 publish 被适配器警告跳过属预期，见 ⑩）、§4 出口第 3 步纯调研支按 ③ 重写（引导句改「按下述两态归置出口」，引导决策问题限定到实现前调研）、§5 重入覆盖两形态（确认后、报告落盘前被打断重跑检索；报告已落盘后——need 已 confirmed 的手动形态不重跑检索、不另立报告，就地联动形态与 need 尚为 draft 时该 need 名下已有覆盖的报告则读既有报告、把结论交回 dev-clarify 回填，检索幂等语义不变）、开头句与禁止事项补 ④ 记账例外；dev-spec SKILL.md 入口门禁「确定输入」补显式提示（FR-4）——need 假设与风险表存在带「未经系统调研」标注的条目时，起草实现决策向用户显式提示该风险（提示不拦截，不新增门禁）；装载上下文补读 need 名下带 need 谱系前缀的调研报告（存在时装载），起草纪律补实现决策依据调研报告结论时在该条注明报告编号（见 ⑪）。⑦ need.fulfilled 推进者镜像枚举点同批（F3：状态表按多份镜像维护，只改一份即分叉；dual-copy-assets #5）：GLOSSARY 项目术语章登记「纯调研需求」词条（判据句、两态对照与记账归属——手动形态（need 已 confirmed 后用户触发）归 dev-research 出口、就地联动形态（含 need 尚为 draft 的手动触发）归 dev-clarify 出口，复审三补第三类），状态表 need.fulfilled 行推进者列补注纯调研支置位并括注记账出口；蓝图 §6.1 状态机表 need 行、蓝图 §4.3 循环退出条件句、METHOD 状态机表 need 行与循环模型退出条件句（根 + assets 双份整文件 cp 同步，dual-copy-assets #4）、docs/concepts.md 状态机举例均补同口径注记（统一子串 = 纯调研支经用户通读拍板记账置位）。⑧ 静态锚定口径（票 20261123-e5b2，spec 20261123-c5e1 实现决策 8）：蓝图负向断言取全文含修订记录行——退役句稳定子串须全蓝图零命中，故本记录只转述不复述；正向断言限定规格行——修订记录行不计。⑨ 调研报告带 need 谱系前缀（spec 20261123-c5e1 实现决策 11；need 业务目标、FR-3 括注与主流程一三处明写而初版 spec 漏载——复审 Spec 轴异议 A）：dev-research §4 第 2 步取号带父参数 `need <need-ID>`，报告文件名带 need 谱系前缀（随 publish 挂对应聚合单评论），纯调研需求可按主题多张、文件名带 need 谱系前缀，无对应 need 的独立调研沿用无前缀取号，蓝图 §11.14 产物行同句；前置 = 就地联动形态触发 dev-research 前 need 已取号在盘（dev-clarify §4 第 2 步改写为未取号则取号、已取号则在既有文件成稿，蓝图 §11.13 与 references/research.md 同句）；check.sh 零改动（取号入口既有父参数能力）。⑩ 报告投影时序（复审二两轴独立同判阻断；适配器对带 need 谱系前缀的知识档要求映射账本已有其需求单行，否则警告跳过，而 need 只在定稿时首次投影）：need 首次投影前产出的报告（就地联动形态与 need 尚为 draft 的手动触发）随 dev-research 出口的 publish 必被跳过，属预期——dev-research §4 第 2 步与蓝图 §11.14 产物行注明；由 dev-clarify 在定稿、need 首次 publish 之后补投：对该 need 名下已落盘、带 need 谱系前缀且尚未投影的调研报告逐张补跑 publish（已投影的不重复——重复投影会追加重复评论），落 dev-clarify §4 第 3 步与蓝图 §11.13 出口门禁；补投必须早于记账（记账时聚合单随终态关闭）；need 已投影后产出的报告随 publish 即挂。复审三回写与边角：尚未投影的可执行判据 = 映射账本无该报告行 = 尚未投影（三腿适配器评论成功才写行、缺需求单行即跳过且不写行），蓝图 §11.13 出口门禁与技能同句——技能先于蓝图落了这条判据，按先改文档再改技能补齐；跳过的真实条件是 need 未投影而非 need 为 draft——need 已 confirmed 但从未投影（定稿时投影失败或当时未配 tracker）时手动形态的报告同样跳过，dev-research §4 第 2 步与蓝图 §11.14 产物行补「遇此警告先重发 need 再重发报告」。⑪ 调研引用链（复审二 Spec 轴 need 全文比对——need 业务目标、spec 作者成功标准、主流程一尾句与对照场景明写「spec 实现决策引用报告编号」而初版 spec 只有用户故事 3，范围补遗留痕）：回填注明报告编号（①）；蓝图 §11.4 与 dev-spec SKILL.md 逐字同句（复审三对齐：删蓝图侧冗余括注、句尾理由与规则同宽）——装载句「need 名下带 need 谱系前缀的调研报告（存在时装载）」，注明句「实现决策依据调研报告结论时在该条注明报告编号——依据条条指得回一手来源。」。零改动声明：check.sh、hooks 资产、sdlc next-mode 路由表、dev-plan / dev-execute / dev-review（管道里天然只剩实现票）均不动；METHOD.md 仅 need.fulfilled 推进者两处镜像随 ⑦ 改动——spec 非目标「METHOD 零改动」为此开例外（原「无分叉表述」判断只覆盖脊柱句，经 F3 证伪；脊柱句本就含 research 位置、零改动）；集成级两条（跨技能就地联动、纯调研 need 端到端）留验收人工段——静态核验通过、行为验证待新会话（§13.2 惯例）。
+> **v1.47 修订记录（dev-blueprint 治理先行——蓝图维护技能规格条目，2026-11-24，need 20261124-a727 / spec 20261124-6c73 / 票 20261124-6543）**：新增 §11.25 dev-blueprint 条目——套件为消费项目维护项目蓝图（docs/blueprints/ 蓝图集；GLOSSARY「项目蓝图」词条已在 need 定稿时登记，本版零改动）的按需服务技能，治理规则「先改文档再改技能」的规格先行票：技能本体与四处接线随票 20261124-f9e5 及后续票落盘。① 入口亮牌两态 + 用户手动：dev-design 分析形态走查批准后亮牌建议调 dev-blueprint 立骨架——用户确认才动、亮牌可拒绝（第一道 approved 门，方案批准不是前置）；setup-reconstruct 完成后亮牌建议汇合逆向产物成首版；用户手动。不绑 setup-workspace（need D12），sdlc next-mode 路由表不加行（按需服务定位同 dev-research / dev-release / dev-docs）。② 入口判定：亮牌识别入口 + 用户拍板——存量汇合时从逆向产物与代码结构列入口候选 + 用户拍板确认清单 + 禁止代挑，判属争议亮牌列候选 + 用户拍板 + 禁止代挑（need E4）；单入口退化不建入口层，多入口完整目录结构深化留 round 2。③ 五过程契约：立骨架（主册五节骨架 + AGENTS.md 蓝图指针写入非哨兵区 + GLOSSARY 项目术语章迁入主册术语节、原章替换为指针行，术语归属模糊亮牌 + 拍板）/ 存量汇合 / 轮次回写（dev-accept 蒸馏第五路联动：全局面折项目主册对应节或全局册、模块面折对应模块册、模块册不存在亮牌建议建册拒绝折全局册留痕、主册修订记录段追加一行；dev-design 置 ADR accepted 时亮牌蓝图待回写，round 1 漂移检测仅此一类，广谱检测留 round 2）/ 拆册与对账（主册或单分册 > 300 行亮牌建议拆 + 用户拍板、拒绝留痕继续；主册目录 ↔ 盘上册实体对账自查在每次回写 / 拆册 / 诞生收尾时执行）/ 施工装载面计算（dev-implement 开工装载：改动面与主册模块地图同口径匹配——命中装对应模块册 + 主册、未命中只装主册 + 亮牌建议补登记不拦截开工）。④ 产物约定与权威序：主册五节 = 定位与边界 / 架构分层与模块地图 / 关键决策关联 / 术语节 / 修订记录段；决策关联层每条决策记「现状 + 为什么 + 取舍」叙述 + 指回 adr 文件 + 被某 ADR 取代（superseded 链指针）行内承载；蓝图与最新轮次产物冲突时以轮次产物为准、冲突即漂移信号；知识档轻产物无状态机不进 validate，门禁零改动。⑤ 枚举与目录登记同批：§10.1 清单 31 → 32（25 流程 + 7 参考）；§7 三层块 L3 家族计数 dev-\* 16 → 17（v1.36 枚举同批先例）；§5.2 目录总览补 docs/blueprints/ 行、所有权表补行、非门禁产物目录句补名（v1.19 setup-migrate 目录登记先例）；§10.2 台账加批外行（治理先行·建设中态）。⑥ 零改动声明：GLOSSARY、METHOD、check.sh、hooks、sdlc next-mode 路由表、docs/skills.md、README 均不动（spec 实现决策 1 / 16——docs/skills.md 清单加行与套件资产编目加行随实现票落）；静态锚定口径：§11.25 条目句式与 spec 20261124-6c73 验收场景关键句同字面（正向锚打规格行、负向反转句全文零命中，docs/standards/static-anchor-guard.md），守护测试随后续实现票落地。
+>
+> **v1.48 修订记录（dev-blueprint 挂载登记补全，2026-11-24，票 20261124-f9e5）**：§7.2 引用矩阵 ref-writing 落盘前行补 dev-blueprint——§11.25 出口「落盘前加载 ref-writing」已随 v1.47 条目落盘，矩阵行漏同步（v1.47 只登记 §11.25 / §10.1 / §7 三层块 / §5.2 / §10.2 五处）；本版随实现票补登记，挂载纪律（docs/standards/skill-reference-mounting.md 规则 2「矩阵同批登记，作为全库装载关系的成文单点」）回到一致。先改文档再改技能：矩阵行提交先于技能本体落盘提交（v1.5 范文同步先例）。
 > **用法**：在新会话中实现某个技能时，将本文档（至少 §2–§8 通用规范、目标技能的规格节、§12 文风基准）作为输入提供给 AI。实现过程中发现设计缺陷：**先改本文档，再改技能**，保证文档与实物不漂移。
 
 ## 1. 背景与目标
@@ -157,6 +160,7 @@
 │   ├── acceptance/             # 验收报告     NNNN-slug.md【过程档】
 │   ├── retros/                 # 复盘报告     NNNN-slug.md（轻产物，不进 check.sh 门禁）
 │   ├── migrations/             # 迁移对账清单 NNNN-slug.md（轻产物，不进 check.sh 门禁）
+│   ├── blueprints/             # 项目蓝图集   项目主册 + 全局册 + 模块册（轻产物，不进 check.sh 门禁）
 │   ├── standards/              # 用户自有/团队编码标准（setup 增量导入，可多份）
 │   └── adr/                    # 架构决策记录 NNNN-slug.md
 ├── AGENTS.md                   # 追加 sdlc 哨兵块
@@ -169,7 +173,7 @@
 
 **目录懒创建**：setup 只建 `.sdlc/` 和 `docs/`，其余产物目录由第一个产物落盘时创建，不留 `.gitkeep`。
 
-`docs/retros/` 与 `docs/migrations/` 是非门禁产物目录：复盘报告由 dev-retro 落盘（§11.10），迁移对账清单由 setup-migrate 落盘（§11.19），`validate` / `phase` / `publish` 均不受理，符合 §5.7"门禁只管有真实代价的事"；审计链价值靠版本库留痕，不靠门禁。
+`docs/retros/`、`docs/migrations/` 与 `docs/blueprints/` 是非门禁产物目录：复盘报告由 dev-retro 落盘（§11.10），迁移对账清单由 setup-migrate 落盘（§11.19），项目蓝图集由 dev-blueprint 落盘（§11.25），`validate` / `phase` / `publish` 均不受理，符合 §5.7"门禁只管有真实代价的事"；审计链价值靠版本库留痕，不靠门禁。
 
 **过程档目录**：`docs/tickets/`、`docs/reviews/`、`docs/acceptance/`、`docs/overviews/` 自创建起被 `.gitignore` 排除、不进任何提交，过程中盘上存在、门禁照常（状态在盘上不在 git 里），验收通过后随蒸馏清扫删除（ADR 0002）；审计链主承载为 tracker 投影与源码提交 `[#NNNN]` 引用。清扫删除**按盘上路径执行、不依赖 git 跟踪状态**——过程档 gitignore 化后为 untracked，git 感知的删除（`git rm` / 按 `git ls-files` 枚举）对 untracked 文件无效（复盘 20261116-dcc7：口径缺失期 14 份 done 票过程档漏删在盘，已补清扫留痕）。
 
@@ -186,6 +190,7 @@
 | docs/standards/* | setup 导入（§11.1 决策 3：标准来源） | 用户 | 同名文件不覆盖，只增不删 |
 | CHANGELOG.md | 首个产物时 | 对应技能与用户 | 只补缺失骨架 |
 | `docs/migrations/*` | 首个产物时 | setup-migrate | 不触碰已有文件（轻产物，不进 check.sh 门禁） |
+| `docs/blueprints/*` | 首个产物时 | dev-blueprint（轮次回写含 dev-accept 蒸馏第五路） | 不触碰已有文件（轻产物，不进 check.sh 门禁） |
 | `docs/` 产物目录 | 首个产物时 | 对应技能 | 不触碰已有文件 |
 | `.git/hooks/*` | setup | — | 幂等重装 |
 | `src/` 及一切其他文件 | — | — | **永不触碰** |
@@ -358,7 +363,7 @@ created: <date>
 ## 7. 三层技能架构与参考层（ref-*）
 
 ```
-L3 流程技能（24 个：dev-* 16、design-* 4、setup-* 3、sdlc 1）：驱动生命周期、持门禁；串联范围以 §8 决策点全表为准；用户与模型均可调用
+L3 流程技能（25 个：dev-* 17、design-* 4、setup-* 3、sdlc 1）：驱动生命周期、持门禁；串联范围以 §8 决策点全表为准；用户与模型均可调用
 L2 参考技能 ref-*（7 个）：定义"什么是好"；由流程技能在指定时机用 Skill 工具加载
 L1 基础设施：check.sh + trackers/ + config.sh + METHOD.md + AGENTS.md 块
 ```
@@ -380,7 +385,7 @@ L1 基础设施：check.sh + trackers/ + config.sh + METHOD.md + AGENTS.md 块
 | design-baseline / design-ui | ref-refactoring-ui | design-baseline 建立与跟随基线时装载；design-ui 出布局与视觉决策时装载——按其任务路由表读对应分册，一次只载一个 |
 | design-brief | ref-b-side-design | B 端项目做功能归类与信息架构相关的约束采集时装载——按其任务路由表读对应分册，一次只载一个 |
 | design-ui | ref-b-side-design | 出数字大屏、组件化、权限模块等 B 端结构层决策时装载——按其任务路由表读对应分册，一次只载一个 |
-| dev-clarify / dev-spec / dev-design / dev-research / dev-docs | ref-writing | 落盘前 |
+| dev-clarify / dev-spec / dev-design / dev-research / dev-docs / dev-blueprint | ref-writing | 落盘前 |
 | dev-implement | ref-implementation + ref-testing + ref-git-commit | 开工装载；写测试前重读 ref-testing |
 | dev-execute | ref-implementation + ref-testing + ref-git-commit | 开工装载；收口 PR 正文与合并信息按 ref-git-commit |
 | dev-review | ref-review + ref-implementation | 评审前随派发传各轴子代理装载（执行体薄上下文，v1.24） |
@@ -448,7 +453,7 @@ dev-implement / dev-fix 按上表固定时机装载 ref-testing **本体**（通
 
 ## 10. 技能总清单与建设计划
 
-### 10.1 清单（31 个 = 24 流程 + 7 参考）
+### 10.1 清单（32 个 = 25 流程 + 7 参考）
 
 | 技能 | 层 | 一句话职责 |
 |---|---|---|
@@ -472,6 +477,7 @@ dev-implement / dev-fix 按上表固定时机装载 ref-testing **本体**（通
 | dev-fix | 流程 | 分诊定级 → 复现（失败测试先行）→ 修复 → 回归 |
 | dev-retro | 流程 | 复盘 → 结论沉淀为可执行改动（标准/检查/技能修订）；审计 [trivial] 豁免 |
 | dev-docs | 流程 | 面向人的文档（README/API/用户文档）维护 |
+| dev-blueprint | 流程 | 项目蓝图维护（docs/blueprints/ 蓝图集：项目主册 + 全局册 + 模块册）：立骨架 / 存量汇合 / 轮次回写 / 拆册与对账 / 施工装载面计算——项目设计真相源，理解入口 + 施工依据（按需服务） |
 | design-brief | 流程 | 使用者角色 → 书面设计约束（信息优先级 / 密度 / 关键操作路径），设计链起点 |
 | design-baseline | 流程 | 建立/读取/跟随项目设计基线（docs/standards/ 按平台分册 + CODING_STANDARDS.md 索引登记） |
 | design-ui | 流程 | 约束与基线下的多平台布局视觉决策：四态原型、Web 必含移动端适配决策、硬指标自查 |
@@ -506,6 +512,8 @@ dev-implement / dev-fix 按上表固定时机装载 ref-testing **本体**（通
 - **批外（1 个，dev-overview，need 0012 / spec 0014）✅ 2026-11-03**：管线技能，站位 dev-plan 出口之后、首票开工之前——need/spec/design 与名下工单纯读合成五节总览落 docs/overviews/（过程档），走查暴露缝隙三路归置到 spec 与工单，用户显式确认（沉默不算）置 reviewed；名下票 ≥2 的 spec 经 `check.sh ticket` 开工门禁强制 reviewed 总览（单票豁免，FR-7）。实现：票 0029 本体（c0fd4a7，2026-11-03）、票 0039 出口取号收口（748c2b0，2026-11-05）；开工门禁在 worktree 内的物化清单缺 docs/overviews/ 缺陷修复随票 20261107-2a2b（64ed877）；check.sh overview 解析、METHOD 与 GLOSSARY 双份 overview 词条先于本条目落地。蓝图与 README 登记缺口经 need 0013 小修留痕，蓝图侧随 v1.28 补齐。
 
 - **批外（1 个，dev-execute，need 0004 / spec 0006）✅ 2026-10-28**：整 spec 编排运行技能（工票 0012–0015；后续修订随票 0013、0019、0025、20261107-66c5，v1.17–v1.25，交付记录散见各版修订记录行故本交付行迟至 v1.29 补录）。收口自动串联改造（2026-11-08，spec 20261108-2fe1 / 票 20261108-641e，v1.29）：§13.2 自测——grep 六点（自动串联义务句、旧"指路手动"句移除、边界与禁止事项反转、值守分档、fulfilled 留人、出口报告契约 = 运行摘要 + 验收报告编号）全数命中，"沉默不算"句保留；本票为纯条文反转，产物校验不适用；无人值守自动串联与档 1 图内验收随下次真实编排运行首验（集成级）。收口链重排演练实录（2026-11-10，spec 20261110-b2fc / 票 20261110-bad9；验 v1.35 收口链（票 20261110-a013 交付），实录注记随本票落）：演练仓库整链预演（/tmp/devx-bad9-drill/records/，mock spec 9400/9500、真 `.sdlc/check.sh` 门禁 + 真 git worktree/hook）——合并候选验收前置链五场景（集成级 9–13）全数预演出证据，另演练事件 1 起（⑥）：①验收在运行 worktree 运行分支上执行（当前分支 = run/9400 实录，报告「场景结果」节首行形态行载明"承载 = 合并候选（运行分支 run/9400，非 BASE_REF）"——盘上报告第 10 行实测，与 §6.5"首行验收形态声明"同口径）；②首轮 rejected → 自动 fix 票入图（ticket 门 + commit-msg 真 hook 合回）→ 重验新报告（重验 = 第 2 轮（前轮 20261110-5d30））→ passed 进 PR 与合并门（两报告盘上并存、旧报告不回改）；③二轮 rejected（Run Y）→ 待判断停点：`git merge-base --is-ancestor run/9500 main` 假 + 运行分支领先 6 提交未合并 + 交付物未落地主线 + worktree/分支完整保留、不清理；④三续接态判读各走一遍（R2 draft 重验在办——并实证 draft 只落运行 worktree 时主工作区会误判无报告；二轮 rejected 待判断；passed 停合并门）；⑤合并后时序：done/清理/收口序列/fulfilled 门呈现全在合并提交之后，出口报告载最终轮次终态与承载；⑥演练事件 1 起：操作员漏执行 §8.6 前置步骤（评审报告同步）致 worktree 删除连带丢报告、由会话正本恢复——与 v1.32 折回实录同构，实证前置步骤是丢失唯一防线（执行疏漏非条文缺口）。无人值守串联与档 1 图内链仍随下次真实编排运行首验（集成级）。
+
+- **批外（1 个，dev-blueprint，need 20261124-a727 / spec 20261124-6c73）治理先行·建设中（2026-11-24，票 20261124-6543）**：蓝图维护技能——docs/blueprints/ 蓝图集五过程（立骨架 / 存量汇合 / 轮次回写 / 拆册与对账 / 施工装载面计算），项目设计真相源：理解入口 + 施工依据，按需服务不进 sdlc next-mode 路由表（dev-research / dev-release / dev-docs 同款定位）。治理先行落盘随本票（spec 实现决策 1「先改文档再改技能」）：新增 §11.25 规格条目（入口亮牌两态 + 用户手动、五过程契约、产物约定、禁止事项）+ §10.1 清单 31 → 32（25 流程 + 7 参考）+ §7 三层块 L3 家族计数 dev-\* 16 → 17 同批 + §5.2 目录总览与所有权表补 docs/blueprints/（轻产物待遇同 retros / migrations）；§11.25 条目句式与 spec 验收场景关键句同字面（锚词纪律，静态守护测试随后续实现票落地）。技能本体（SKILL.md + references/）、四处既有技能薄联动（dev-design 亮牌立骨架 / setup-reconstruct 出口亮牌汇合 / dev-accept 蒸馏第五路回写 / dev-implement 开工装载）、docs/skills.md 清单加行与套件资产编目加行随实现票 20261124-f9e5 及后续票落盘（verify-pack 对账三查随实物同步）；GLOSSARY 零改动（「项目蓝图」词条已在 need 20261124-a727 定稿时登记）。
 
 批 2/3 技能要点：dev-clarify（想法→need；方法论亮牌五法路由 + references/ 细则；校准阶梯：查证→确认→决策卡→可点 HTML 原型→转假设，配查证过滤闸；开放问题三路归置清零；RUP 双接入——sdlc 里程碑判读层 + 用例骨架）；dev-design（spec→模块划分/数据流/seam/ADR；ADR 三条件：难逆转、无上下文会困惑、真实权衡）；dev-fix（先分诊定级，修复前必须先有失败测试）；dev-research（后台代理、只信一手来源、每条结论带引用）；dev-release（语义化版本 + CHANGELOG + 发布检查单）；dev-docs（面向人的文档，与实际行为一致性优先）；dev-retro（复盘 = 豁免审计 + 改动清单沉淀；结论三态合规/滥用/存疑、只认 diff 证据；报告落 docs/retros/ 轻产物，不进 check.sh 门禁）。
 
@@ -775,6 +783,22 @@ dev-implement / dev-fix 按上表固定时机装载 ref-testing **本体**（通
 - **异常流**：①准入任一门不过或硬拒项命中 → 当场拒绝，明说卡在哪道门与哪条判据，指路 dev-spec（需求清楚）或 dev-clarify（需求模糊），docs/ 零产物；②开工确认被拒或沉默 → 三件套 draft 留盘、实现不开始、指路 /dev-spec；③check.sh all 反复修不绿 → 停，转 dev-fix 或完整链；④快评两轮仍 rejected 或超范畴 → 停，指路完整链；⑤合并确认拒绝 → 停在合并门、分支与盘上状态保留、不清理。
 - **边界**：单票单 spec 是快通道定义的一部分——多票、多 spec、跨模块改动走完整链或 /dev-execute，不支持也不扩展；不做无人值守模式（默认有人值守，挂机编排归 dev-execute）；不替代 [trivial]——typo 与纯文档改动继续走豁免通道；门禁与流程基础设施改动不走快通道（硬拒项，本 spec 即按完整链走，不自证例外）。准入 rubric 是判断辅助不是机械门禁：误放行风险由合并门人工兜底、由 dev-retro 审计兜底（A1）。
 - **禁止事项**：任一道门不过仍放行，或硬拒项命中后进综合权衡；未经开工确认开始实现；未经合并确认执行合并；沉默当确认推进任何状态；拒绝路径落盘产物；快评非 approved 仍宣称满足 pre-push 覆盖，或返工环超两轮继续；收尾跳步（票未落 done、过程档未清扫、need/spec 未推进就做收口提交）。
+
+### 11.25 dev-blueprint
+
+- **触发（入口亮牌两态 + 用户手动）**：① dev-design 分析形态走查批准后亮牌建议调 dev-blueprint 立骨架——用户确认才动、亮牌可拒绝（第一道 approved 门即分析走查批准，方案批准不是前置）；② setup-reconstruct 完成后亮牌建议汇合逆向产物成首版（素材 = 逆向 need / 逆向 ADR / 折叠内容）；③ 用户手动（"建项目蓝图""回写蓝图""拆册"）。脊柱上无必经位置，**不进 sdlc next-mode 路由表**——按需服务定位同 dev-research / dev-release / dev-docs；不绑 setup-workspace 初始化（need D12），骨架由本技能在触发点亮牌。
+- **定位**：套件为消费项目维护**项目蓝图**（GLOSSARY 项目术语章词条）——docs/blueprints/ 蓝图集是项目级设计真相源：既是人与智能体的理解入口（读项目主册 + AGENTS.md 即答核心设计问题），也是开发会话的施工依据（dev-implement 开工装载最小必要面，五过程之 ⑤）。蓝图集 = 项目主册 + 全局册（按需）+ 模块册（按需，一册对应一个改动面口径模块）。**亮牌识别入口 + 用户拍板**：存量汇合时从逆向产物与代码结构列入口候选 + 用户拍板确认清单 + 禁止代挑，判属争议亮牌列候选 + 用户拍板 + 禁止代挑（need E4）；判定结果为单入口或不设入口时**单入口退化不建入口层**（多入口完整目录结构深化留 round 2）。**权威序纪律：蓝图与最新轮次产物冲突时以轮次产物为准**，冲突即漂移信号——round 1 漂移检测仅 dev-design 置 ADR accepted 时亮牌蓝图待回写一类（supersede 冲突），广谱检测（评审轴对照蓝图 / 验收走查 / 巡检）与漂移信号持久标记载体留 round 2。
+- **五过程契约**：
+  1. **立骨架（新立项路）**：dev-design 联动确认后建立项目主册骨架（五节齐备，见产物约定）+ AGENTS.md 蓝图指针写入非哨兵区（既有项目；新项目开箱位由 setup-workspace assets 的 AGENTS 模板承载）+ 术语迁册——GLOSSARY 项目术语章迁入主册术语节、原章替换为指针行（「项目术语已迁 docs/blueprints/ 项目主册术语节」），术语归属模糊亮牌 + 拍板。
+  2. **存量汇合**：setup-reconstruct 联动确认后汇合逆向产物成首版（入口候选识别按定位节口径）；同名标准文件与同名术语不覆盖（setup-workspace 同名不覆盖先例）。
+  3. **轮次回写**：dev-accept 蒸馏第五路联动——验收通过时该轮耐久变化按落册判定折进对应册：全局面（跨模块架构原则、全局决策）折项目主册对应节或全局册；模块面折对应模块册；模块册不存在 → 亮牌建议建册，拒绝则折全局册留痕；每次回写在主册「修订记录段」追加一行（版本 / 日期 / 一句摘要）。dev-design 置 ADR accepted 时亮牌蓝图待回写，本技能承接回写；蓝图不进 validate，回写后由对账自查代替门禁（五过程之 ④）。
+  4. **拆册与对账**：尺寸检测——项目主册或单分册 > 300 行（初值本轮钉 300，样板项目实测后可经后续轮次调参）→ 亮牌建议拆 + 用户拍板；拒绝留痕继续（无用户拍板不拆册）；拆册动作 = 分册拆出 + 主册目录同步；**主册目录 ↔ 盘上册实体对账自查**在每次回写 / 拆册 / 诞生收尾时执行。
+  5. **施工装载面计算**：dev-implement 开工装载判定——本票「改动面」条目与项目主册「架构分层与模块地图」节（模块归属登记载体：模块清单 + 共享模块清单行，口径 = dev-plan 改动面同款：目录或模块名）匹配：命中 → 装对应模块册 + 主册；未命中（未登记模块）→ 只装主册 + 亮牌建议补登记，不拦截开工；dev-review / dev-accept 按需装载同口径。
+- **产物约定**：册 = 蓝图集内一个文档单元，book_type ∈ {项目主册, 全局册, 模块册}，entry_slug 恒空（多入口结构 round 2 启用）。**主册五节**：定位与边界 / 架构分层与模块地图 / 关键决策关联 / 术语节 / 修订记录段（演进史）。分册叙述与取舍自含，实现细节与过程索引指回轮次产物（need / spec / design / adr 文件路径）。**决策关联层**（关键决策关联节）：每条决策记「现状 + 为什么 + 取舍」叙述 + 指回 adr 文件；superseded 链以「被某 ADR 取代（superseded 链指针）」行内承载。**知识档轻产物：无 frontmatter 状态机、不进 check.sh validate**——门禁零改动（§5.2 非门禁产物目录待遇同 retros / migrations），审计链靠版本库留痕。
+- **出口**：报告改动面（动了哪册哪节、对账自查结果、修订记录追加行）→ 指路不自动串联；落盘提交跟仓库惯例（纯文档改动适用 `[trivial]` 豁免，同 dev-docs / setup-reconstruct 家族先例）。落盘前加载 ref-writing。
+- **中断**：蓝图无状态机——盘上未提交改动即断点（git status 可见）；停前列清已改册节与未决亮牌再停，状态在盘上不在对话里。
+- **边界**：round 2 留项不在本轮落——多入口完整目录结构深化（entry_slug 启用）、广谱漂移检测、漂移信号持久标记载体；不承载 UI 原型与设计稿（design-\* 套件职责）；check.sh / METHOD.md / sdlc next-mode 路由表零改动（spec 20261124-6c73 实现决策 16）。
+- **禁止事项**：不收编 ADR（ADR 文件与 docs/adrs/ 机制零改动——决策关联层只做当前态关联与指针，ADR 的立与取代仍归 dev-design 与蒸馏第三路）；不替代轮次产物（need / spec / design / ticket 照旧，蓝图是汇合视图与索引层）；无用户拍板不拆册（拒绝留痕继续）；替用户拍板或代挑入口候选与术语归属；未经确认落盘（两支联动亮牌都是用户确认才动）。
 
 ## 12. dev-implement 范文（文风与浓度基准，全文照此实现）
 

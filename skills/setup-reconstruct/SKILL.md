@@ -76,6 +76,9 @@ Read references/artifact-templates.md，按五路落点产出草案，模板从 
 ## 5. 出口（报告 + 指路，不自动串联）
 
 报告三件：落盘产物清单、未覆盖区清单、提交提示。
+**蓝图诞生亮牌**：完成后亮牌建议汇合逆向产物成首版（素材 = 逆向 need /
+逆向 ADR / 折叠内容）——建议调 dev-blueprint，用户确认才动、亮牌可拒绝，
+本技能不代跑汇合（不自动串联）。
 按需服务定位：sdlc next-mode 路由表不加行，没有任何技能自动调用本技能，
 扫描与重扫一律用户手动触发。
 后续指路：知识过时 → 手动重跑（Read references/incremental-alignment.md——增量对齐：

@@ -256,7 +256,7 @@ test('GLOSSARY：投影词条三腿聚合口径齐备，「名义归属」词条
 test('蓝图 v1.45：聚合口径三腿归一修订记录齐备；头部版本行随最新修订更新', () => {
   const blueprint = read(path.join('docs', 'sdlc-skills-blueprint.md'));
   assert.ok(blueprint.includes('v1.45 修订记录'), '蓝图应含 v1.45 修订记录');
-  assert.ok(blueprint.includes('版本 1.46'), '蓝图版本行应升至 1.46');
+  assert.ok(blueprint.includes('版本 1.48'), '蓝图版本行应随最新修订升至当前版（v1.48，票 20261124-f9e5 同批更新钉点）');
   assert.ok(blueprint.includes('三腿统一聚合口径受理面'), '蓝图 §5.4 应含三腿统一受理面话术');
 });
 

@@ -1,6 +1,6 @@
 ---
 name: ref-writing
-description: 内部参考，定义什么是人类可理解的文档：平实具体、例子优先、一段一个观点、可验证的陈述。由 dev-clarify / dev-spec / dev-research / dev-docs 在产物落盘前加载，dev-accept / dev-retro 在报告落盘前加载；不响应独立的写作请求——用户直接要求写需求、写 spec、写文档时，分别转 dev-clarify / dev-spec / dev-docs 流程技能。
+description: 内部参考，定义什么是人类可理解的文档：平实具体、例子优先、一段一个观点、可验证的陈述。由 dev-clarify / dev-spec / dev-research / dev-docs / dev-blueprint 在产物落盘前加载，dev-accept / dev-retro 在报告落盘前加载；不响应独立的写作请求——用户直接要求写需求、写 spec、写文档时，分别转 dev-clarify / dev-spec / dev-docs 流程技能。
 ---
 
 # ref-writing：什么是人类可理解的文档
