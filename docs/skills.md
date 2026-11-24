@@ -41,7 +41,7 @@
 | [dev-research](../skills/dev-research/SKILL.md) | 技术调研 → 带一手来源引用的调研报告 |
 | [dev-release](../skills/dev-release/SKILL.md) | 语义化版本 + CHANGELOG + 发布检查单（tag 与推送是单向门，必须问人） |
 | [dev-docs](../skills/dev-docs/SKILL.md) | 面向人的文档维护：每条行为断言先核验后落笔 |
-| [dev-blueprint](../skills/dev-blueprint/SKILL.md) | 项目蓝图维护（docs/blueprints/ 蓝图集：项目主册 + 全局册 + 模块册，spec 20261124-6c73，规格见蓝图 §11.25）：立骨架 / 存量汇合 / 轮次回写 / 拆册与对账 / 施工装载面计算——项目设计真相源，理解入口 + 施工依据（按需服务，用户手动 + dev-design / setup-reconstruct 联动亮牌） |
+| [dev-blueprint](../skills/dev-blueprint/SKILL.md) | 项目蓝图维护（docs/blueprints/ 蓝图集：项目主册 + 入口层 + 全局册 + 模块册，判定拍板为多入口时每入口一个子目录，spec 20261124-6c73 / 20261124-7e10，规格见蓝图 §11.25）：立骨架（主册七段 + 入口判定拍板）/ 存量汇合 / 轮次回写（含待回写漂移标记行区消解留痕）/ 拆册与对账 / 按入口装载三支——项目设计真相源，理解入口 + 施工依据（按需服务，用户手动 + dev-design / setup-reconstruct 联动亮牌） |
 
 **界面设计（design-\* 套件）**
 
