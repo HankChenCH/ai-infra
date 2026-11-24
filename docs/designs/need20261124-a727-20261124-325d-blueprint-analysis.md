@@ -1,8 +1,9 @@
 ---
 id: 20261124-325d
 need: 20261124-a727
-status: draft
+status: analyzed
 created: 2026-11-24
+analyzed: 2026-11-24
 ---
 # 项目蓝图：诞生、保鲜与消费的系统分析
 
