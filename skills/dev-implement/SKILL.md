@@ -39,6 +39,8 @@ ADR → GLOSSARY.md → CODING_STANDARDS.md。
 再用 Skill 工具装载三个参考：ref-implementation、ref-testing、ref-git-commit；
 写测试前重读 ref-testing，写哪类测试再按其场景路由表读取对应细则，一次只载一个。
 
+docs/blueprints/ 蓝图集在盘 → 开工装载项目主册 + 改动面命中模块册；未命中只装主册 + 亮牌建议补登记，不拦截开工。命中判定 = 本票改动面条目与项目主册「模块地图」节同口径匹配（登记载体：模块清单 + 共享模块清单行，口径 = dev-plan 改动面同款：目录或模块名；蓝图 §11.25 五过程之 ⑤）。
+
 工单含界面实现（验收标准或正文提及界面、页面、原型）→ 追加两步装载：读
 docs/standards/ 设计基线分册（design-<platform>.md，按工单对象平台取册），
 再用 Skill 工具装载 design-ui 原则。无基线分册或 design-ui 未安装 → 照常实现，
