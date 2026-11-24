@@ -1,8 +1,9 @@
 ---
 id: 20261124-e5b8
-status: confirmed
+status: fulfilled
 created: 2026-11-24
 confirmed: 2026-11-24
+fulfilled: 2026-11-24
 ---
 # 项目蓝图深化——多入口组织、广谱漂移检测与漂移信号持久载体
 
