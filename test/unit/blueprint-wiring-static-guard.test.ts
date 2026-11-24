@@ -1,7 +1,8 @@
 // 蓝图接线静态锚定断言（spec 20261124-6c73 实现决策 14 / 测试决策 seam，票 20261124-6891；
-// v1.49 深化扩围：spec 20261124-7e10 实现决策 10，票 20261124-58b8 治理先行 + 票 20261124-2df8 技能落盘）。
+// v1.49 深化扩围：spec 20261124-7e10 实现决策 10，票 20261124-58b8 治理先行 + 票 20261124-2df8 技能落盘；
+// 票 20261124-2800 补齐锚面缺口——检测三处分钉、GLOSSARY 双份两词条、入口索引节句、AGENTS 模板现状句）。
 //
-// 守护边界（哪些文件哪些句受守护）——被守护文件九份，正向锚 = spec「验收场景」关键句
+// 守护边界（哪些文件哪些句受守护）——被守护文件十一份，正向锚 = spec「验收场景」关键句
 // 字面（期望值独立来源，非实现推导），受守护文本再变时本测试与文档同批改：
 // - docs/sdlc-skills-blueprint.md §11.25 dev-blueprint 条目：诞生亮牌两态句（FR-1/FR-2）、
 //   权威序句与 ADR accepted 亮牌句（FR-8）、术语迁册句与归属模糊亮牌句（FR-9，v1.49
@@ -12,16 +13,24 @@
 //   验收场景字面）：入口目录结构句与 entry_slug 句（FR-1）、主册七段句与单入口退化句
 //   （FR-1/E2）、共享面判定句与归属列句（FR-2）、按入口装载三支句与装载对照发现即写行句
 //   （FR-3/FR-4）、回写自查未消解行句（FR-4/E3）、标记行区行格式与消解留痕句（FR-5）、
-//   术语归册句（FR-6）、多入口 AGENTS 指针句（FR-1）、E1 入口判定句。
+//   术语归册句（FR-6）、多入口 AGENTS 指针句（FR-1）、E1 入口判定句、入口索引节句
+//   （FR-1 主册模板行，票 20261124-2800）。
 // - skills/dev-design/SKILL.md：诞生亮牌句 + ADR accepted 亮牌句（FR-1/FR-8）。
 // - skills/setup-reconstruct/SKILL.md：出口蓝图诞生亮牌句（FR-2）。
 // - skills/dev-accept/SKILL.md：蒸馏第五路句、修订记录追加行句、落册判定三支（FR-8）、
-//   蓝图册按需装载句（实现决策 11；票 20261124-d86f 升级多入口口径，锚随受守护文本同批演进）。
+//   蓝图册按需装载句（实现决策 11；票 20261124-d86f 升级多入口口径，锚随受守护文本同批演进）、
+//   使用方走查轴轴表行蓝图对照项（FR-4 检测三处之走查轴支，票 20261124-2800）。
 // - skills/dev-implement/SKILL.md：开工装载三支句与归属列登记载体句（FR-3/FR-7；
-//   票 20261124-d86f 随接线升级同批演进，与 dev-blueprint §3.5 同口径同字面）。
+//   票 20261124-d86f 随接线升级同批演进，与 dev-blueprint §3.5 同口径同字面）、
+//   装载对照发现即写行句与内联行格式（FR-4 检测三处之装载支，票 20261124-2800）。
 // - skills/dev-review/SKILL.md：蓝图册按需装载句（实现决策 11）。
 // - skills/dev-clarify/SKILL.md：新术语双语态登记句（FR-9）。
-// - skills/setup-workspace/assets/AGENTS.md 模板：蓝图指针行 + 非哨兵区定位（FR-7）。
+// - GLOSSARY 双份（根 GLOSSARY.md + skills/setup-workspace/assets/GLOSSARY.md）：「漂移信号」
+//   词条（载体 / 检测三处 / 消解留痕语义，FR-5）与「使用方走查轴」词条蓝图对照项（FR-4），
+//   双份同文按词条行机械 diff（票 20261124-2800；整文件逐字一致由 codeup-projection-sync.test.ts
+//   承载，本面按词条粒度独立断言，期望值 = spec 验收场景字面）。
+// - skills/setup-workspace/assets/AGENTS.md 模板：蓝图指针行 + 非哨兵区定位（FR-7）；现状句——
+//   多入口指针形态与占位语义保留 + 负向「round 2 启用」退役锚（FR-1，票 20261124-2800）。
 //
 // 比对形态：正向 = 去空白后字面 includes（受守护 Markdown 有硬折行，全文与锚词两侧同规
 // 去空白）；负向 = 去空白后零命中（收编 ADR 条为负向后视正则零匹配，见下）；双份断言 =
@@ -29,7 +38,9 @@
 // 每个正向锚逐处删除须红、每个负向锚逐个写回须红，证据记票 Progress——本测试落盘时的
 // 反向审计已在票 20261124-6891 执行；v1.49 扩围锚（蓝图规格行新锚 + dev-blueprint SKILL.md
 // 深化锚 + 负向新锚）的反向审计在票 20261124-2df8 执行；票 20261124-d86f 升级的
-// dev-implement / dev-accept 既有锚（演进为三支新字面）的反向审计在该票执行。
+// dev-implement / dev-accept 既有锚（演进为三支新字面）的反向审计在该票执行；票 20261124-2800
+// 新增锚（检测三处之装载支 / 走查轴支、GLOSSARY 双份两词条、入口索引节句、AGENTS 现状句、
+// 「round 2 启用」负向）的反向审计在该票执行。
 //
 // 读取面口径（正向与负向分离，docs/standards/static-anchor-guard.md 纪律 3）：
 // - 蓝图正向锚只打规格行——整块剔除头部修订块（自 `> 版本 ` 行起、至首个 `## ` 标题之前）。
@@ -53,7 +64,9 @@
 // 负向「代挑」不能裸用——正向句「禁止代挑」含该子串，改用 `(?<!禁止)代挑` 打 dev-blueprint
 // SKILL.md 去空白全文；此锚只打技能面不打蓝图面（蓝图 §11.25 禁止事项行「替用户拍板或
 // 代挑入口候选与术语归属」是合法禁止语义但无「禁止」紧邻前缀，入面会误红；spec E1
-// 负向场景的检索对象即技能文本）。
+// 负向场景的检索对象即技能文本）。「round 2 启用」负向锚只打 assets AGENTS 模板（FR-1
+// 现状化退役锚——模板指针行陈旧括注退役，票 20261124-2800）：该子串在模板全文零命中
+// 即现状化成立，不涉纪律规则负向面。
 //
 // 同句多份镜像的守护边界：
 // - dev-design 同文件两处「建议调 dev-blueprint」（§5.1 诞生亮牌 / §5.2 ADR 亮牌）——
@@ -71,13 +84,19 @@
 //   复述面），正文份删之即红——无 description 兜底容忍；真实存在的镜像容忍仅
 //   「标记行是元数据不是蓝图内容」正文两份（§1 / §4），删任一份仍绿、两份全删才红；
 //   E1 句长锚全文恰一份（§3.1；description 虽含「禁止代挑」字样但无该长句），删之即红。
+// - dev-accept 走查轴轴表行（§3 轴表）钉独占长字面「蓝图册对照（验收代理装载对照…行格式
+//   同 dev-blueprint §4 契约）」（票 20261124-2800）——§8 混合形态条是短镜面变体（无
+//   「验收代理装载对照」前缀与「行格式」后缀），长锚只有轴表行满足，删轴表行必红；
+//   短镜面本身不在锚面（删之不红，此局限在此声明）。
+// - GLOSSARY「漂移信号」「使用方走查轴」词条行在根与 assets 各一份（双份资产）：锚词
+//   双面独立断言 + 词条行机械 diff 双承载，删任一份必红（票 20261124-2800）。
 // - 不在实现决策 14 锚词清单（票面守护面）里的验收场景句本轮没有守护（如 FR-2 存量
 //   入口识别句、FR-3 入口判定句、FR-4 主册五节清单、FR-5 决策关联叙述句、E1 漂移信号
 //   正向语义、E4 入口候选句——本轮锚词面之外，留后续治理票按需扩围）。评审
-//   20261124-9ae9 建议采纳补声明：本票两处新接线句（dev-implement「装载对照发现…发现
-//   即写主册标记行区」句含内联行格式、dev-accept 走查轴行「docs/blueprints/ 蓝图册
-//   对照…发现即写标记行并留痕报告」条目）同未入锚面——留票 20261124-2800 扩围
-//   （spec FR-4 静态守护承载票），删任一句当前不红，锚面补齐前靠评审与走查兜底。
+//   20261124-9ae9 点名的两处新接线句（dev-implement「装载对照发现…发现即写主册标记
+//   行区」句含内联行格式、dev-accept 走查轴行「docs/blueprints/ 蓝图册对照…发现即写
+//   标记行并留痕报告」条目）已由票 20261124-2800 入锚面（检测三处之装载支 / 走查轴支），
+//   本段相应收敛——「不在锚面」清单不再含这两句。
 //
 // 双份资产断言（运行中修订 2026-11-24 归置本票，评审 20261124-17be F1）：根版 AGENTS
 // 哨兵块逐字一致断言——generation.md §2「AGENTS.md 收口」固定文本代码块 ↔
@@ -142,6 +161,8 @@ const devImplement = loadSurface(path.join('skills', 'dev-implement', 'SKILL.md'
 const devReview = loadSurface(path.join('skills', 'dev-review', 'SKILL.md'));
 const devClarify = loadSurface(path.join('skills', 'dev-clarify', 'SKILL.md'));
 const agentsAsset = loadSurface(path.join('skills', 'setup-workspace', 'assets', 'AGENTS.md'));
+const rootGlossary = loadSurface('GLOSSARY.md');
+const assetsGlossary = loadSurface(path.join('skills', 'setup-workspace', 'assets', 'GLOSSARY.md'));
 const generationRef = read(path.join('skills', 'setup-workspace', 'references', 'generation.md'));
 
 /** 折行处理：去空白后比对——硬折行不在锚词里留痕迹。 */
@@ -309,6 +330,15 @@ test('dev-accept SKILL.md：蓝图册按需装载句在场（实现决策 11；�
   ]);
 });
 
+test('dev-accept SKILL.md：使用方走查轴轴表行蓝图对照项在场（检测三处之走查轴支，票 20261124-2800 补评审 20261124-9ae9 声明缺口）', () => {
+  // 轴表行独占长字面（spec FR-4 验收场景「走查轴材料清单含 docs/blueprints/ 对照项」）：
+  // §8 混合形态条是短镜面变体（无「验收代理装载对照」前缀），长锚只有轴表行满足——
+  // 删轴表行必红（static-anchor-guard 纪律 2）
+  assertAnchored([devAccept], [
+    'docs/blueprints/ 蓝图册对照（验收代理装载对照，发现即写标记行并留痕报告——行格式同 dev-blueprint §4 契约）',
+  ]);
+});
+
 test('dev-implement SKILL.md：开工装载三支句与归属列登记载体句在场（锚随按入口装载升级同批演进，票 20261124-d86f）', () => {
   assertAnchored([devImplement], [
     // 命中判定句（规则头，接前文钉住；三支句与 dev-blueprint §3.5 同字面，本句为
@@ -318,6 +348,15 @@ test('dev-implement SKILL.md：开工装载三支句与归属列登记载体句�
     '命中恰一入口 → 装项目主册 + 该入口主册 + 命中模块册',
     '命中多入口（跨入口改动）→ 装项目主册 + 各命中入口主册 + 命中模块册',
     '未命中（未登记模块）→ 只装项目主册 + 亮牌建议补登记，不拦截开工',
+  ]);
+});
+
+test('dev-implement SKILL.md：装载对照发现即写行句与内联行格式在场（检测三处之装载支，票 20261124-2800 补评审 20261124-9ae9 声明缺口）', () => {
+  assertAnchored([devImplement], [
+    // 跨箭头整句（static-anchor-guard 纪律 1；与 dev-blueprint §3.5 同字面，本面独立钉）
+    '装载对照发现蓝图册与最新轮次产物冲突（模块地图与实际改动面失配、决策被新 ADR 取代等）→ 发现即写主册标记行区标记行并亮牌告知',
+    // 内联行格式 + 检测者只写标记行区纪律尾注（评审 20261124-9ae9 点名的含内联行格式句）
+    '行格式同 dev-blueprint §4 契约：`- [待回写] <发现点> → <冲突对象引用>（<日期>）`；检测者只写标记行区，不动册内容',
   ]);
 });
 
@@ -350,13 +389,16 @@ test('dev-blueprint SKILL.md：权威序句、迁移句、拆册对账句、蓝�
 
 // ── 正向：dev-blueprint SKILL.md v1.49 深化锚（spec 20261124-7e10 验收场景字面，票 20261124-2df8）──
 
-test('dev-blueprint SKILL.md：FR-1 入口目录结构句、七段句、AGENTS 多入口指针句在场', () => {
+test('dev-blueprint SKILL.md：FR-1 入口目录结构句、七段句、入口索引节句、AGENTS 多入口指针句在场', () => {
   assertAnchored([devBlueprint], [
     // 入口层立册（§1 入口目录结构，三要素整句）
     '每入口一个子目录，入口主册 + 入口级分册（模块册 / 术语分册）落子目录，项目主册与项目级分册（跨入口共享模块册 / 全局册）留顶层',
     'entry_slug 用 ASCII 小写短横线（对齐 claim slug 惯例）',
     // 主册七段（§4 引导句整句列举，删任一段名即红）
     '主册七段 = 定位与边界 / 入口索引 / 架构分层与模块地图 / 关键决策关联 / 共享术语节 / 修订记录段 / 待回写漂移标记行区',
+    // 入口索引节句（§4 模板行，spec 决策 2「入口索引」节括注字面，票 20261124-2800；
+    // blueprintSpec 面该句随主册七段整句锚承载）——模板行恰一份，删之即红
+    '## 入口索引 ← 入口 slug → 使用者群体一句 → 子目录指针；单入口退化时节标「单入口退化」',
     // E2 单入口退化（§3.1 独占字面：括注内含标记行区仍在主册 + 入口索引节标退化）
     '单入口退化不建入口层（主册仍含待回写漂移标记行区，入口索引节标「单入口退化」）',
     // AGENTS 指针多入口形态（§3.1）
@@ -413,6 +455,40 @@ test('assets/AGENTS.md 模板：蓝图指针行与非哨兵区定位在场', () 
   ]);
 });
 
+test('assets/AGENTS.md 模板：指针行现状句与占位语义在场（FR-1 现状化，票 20261124-2800）', () => {
+  // spec FR-1 验收场景：写入句含「多入口时指针含真实入口索引」，模板行无「round 2 启用」
+  // 陈旧括注（负向见下方退役锚）且占位语义保留——现状化后模板无法预知入口清单，
+  // 占位 <主册文件路径> 与单入口退化形态描述是现状句本体
+  assertAnchored([agentsAsset], [
+    '项目蓝图：docs/blueprints/（入口索引：<主册文件路径>——单入口退化形态，多入口时指针含真实入口索引）',
+    '蓝图未诞生前保持占位，蓝图诞生后由 dev-blueprint 回填入口索引',
+  ]);
+});
+
+// ── 正向：GLOSSARY 双份两词条（spec FR-4/FR-5 验收场景字面，票 20261124-2800）──
+
+test('GLOSSARY 双份：「漂移信号」词条在场且含持久载体、检测三处与消解留痕语义（根 + assets）', () => {
+  // spec FR-5 验收场景「词条在场（根 + assets 双份同文）且含检测三处与消解留痕语义」：
+  // 双份各面独立断言（删任一份即红），双份同文另由词条行机械 diff 承载（见双份资产节）
+  assertAnchored([rootGlossary, assetsGlossary], [
+    '- **漂移信号** —— 蓝图与最新轮次产物冲突的待回写标记',
+    '持久载体 = 项目主册「待回写漂移」标记行区',
+    // 检测三处枚举钉整句——检测者名单任何一处漂移即红
+    '检测三处 = dev-implement 开工装载对照、dev-accept 使用方走查轴对照、dev-blueprint 回写自查',
+    // 消解留痕钉整句
+    '回写消解留痕 = 该行改 `- [已消解 <日期>] <原行内容>` + 主册修订记录段追加一行',
+  ]);
+});
+
+test('GLOSSARY 双份：「使用方走查轴」词条判断依据含 docs/blueprints/ 蓝图册对照项（根 + assets）', () => {
+  // spec FR-4 走查轴扩围场景「判断依据清单含 docs/blueprints/ 对照项且双份同文」——
+  // 词条措辞与 dev-accept 轴表行不同源（「在盘时装载对照，发现漂移即写主册标记行并留痕
+  // 报告」为词条面独占字面），分面独立钉
+  assertAnchored([rootGlossary, assetsGlossary], [
+    'docs/blueprints/ 蓝图册（在盘时装载对照，发现漂移即写主册标记行并留痕报告）',
+  ]);
+});
+
 // ── 负向：反转句零命中（蓝图全文含修订块 + dev-blueprint SKILL.md 全文）──
 
 test('负向：权威序反转「以蓝图为准」与「自动拆册」「撤 docs/adrs」稳定子串零命中', () => {
@@ -452,6 +528,13 @@ test('负向：「代挑」非禁止形态零命中（负向后视豁免正向�
     ? [`${devBlueprint.label} 出现非禁止形态「代挑」`]
     : [];
   assert.deepEqual(offenders, [], `E1 入口判定纪律反转（代挑）：${offenders.join('；')}`);
+});
+
+test('负向：assets/AGENTS.md 模板「round 2 启用」陈旧括注零命中（FR-1 现状化退役锚，票 20261124-2800）', () => {
+  // 模板指针行现状化（票 20261124-b584）退役的陈旧括注——稳定子串全文零命中即现状化成立
+  // （写回任一处即红）；只打模板面，spec FR-1 验收场景「模板行无 round 2 启用陈旧括注」
+  // 的检索对象即模板
+  assertRetiredAbsent([agentsAsset], ['round 2 启用']);
 });
 
 // ── 双份资产逐字一致断言（评审 20261124-17be F1 归置本票承载）──
@@ -506,4 +589,30 @@ test('双份资产逐字一致：generation.md §2 根版哨兵固定文本 ↔ 
     generationFixedBlock(generationRef),
     'AGENTS 哨兵块双份漂移：generation.md §2 固定文本与 assets/AGENTS.md 哨兵块须逐字一致（改一处须同步另一处，dual-copy-assets #1）',
   );
+});
+
+/**
+ * GLOSSARY 词条行：行首 `- **<词条名>**` 恰一行的原文截取；缺失或多份一律抛错，
+ * 双份读取面不可信不静默（提取手法同 assetSentinelBlock：行定位 + 原文截取）。
+ */
+function glossaryEntryLine(full: string, entryName: string): string {
+  const prefix = `- **${entryName}**`;
+  const matches = full.split('\n').filter((line) => line.startsWith(prefix));
+  if (matches.length !== 1) {
+    throw new Error(`GLOSSARY 词条「${entryName}」应恰一行（实为 ${matches.length} 行），双份读取面不可信`);
+  }
+  return matches[0];
+}
+
+test('双份资产逐字一致：GLOSSARY「漂移信号」「使用方走查轴」词条行根 ↔ assets（机械 diff，不等即红）', () => {
+  // spec FR-4/FR-5 验收场景「根 + assets 双份同文」；整文件逐字一致由
+  // codeup-projection-sync.test.ts 承载，此处按词条粒度独立断言（失败信息点名词条，
+  // dual-copy-assets #4）
+  for (const entryName of ['漂移信号', '使用方走查轴'] as const) {
+    assert.equal(
+      glossaryEntryLine(rootGlossary.text, entryName),
+      glossaryEntryLine(assetsGlossary.text, entryName),
+      `GLOSSARY 词条「${entryName}」双份漂移：根 GLOSSARY.md 与 assets GLOSSARY.md 须逐字一致（改一处须同步另一处，dual-copy-assets #4）`,
+    );
+  }
 });
