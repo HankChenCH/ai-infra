@@ -65,7 +65,7 @@ test('blueprint v1.44 修订记录：预演门禁执行纪律两条折回已登�
     );
   }
   assert.ok(
-    /版本 1\.46 · 2026-11-23/.test(blueprint),
+    /版本 1\.47 · 2026-11-24/.test(blueprint),
     'sdlc-skills-blueprint.md 头部版本行未随最新修订更新（v1.25 漏更先例教训）'
   );
 });
