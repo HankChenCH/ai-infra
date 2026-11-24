@@ -2,9 +2,9 @@
 
 ## 这个仓库是什么
 
-门禁式 SDLC 技能套件（31 个技能）+ 其 npm 安装器 `@hankchen/infra`。包根 = 仓库根，`files` 全量随包分发：
+门禁式 SDLC 技能套件（32 个技能）+ 其 npm 安装器 `@hankchen/infra`。包根 = 仓库根，`files` 全量随包分发：
 
-- **skills/** —— 31 个技能正源（sdlc 总控 / setup-\* / dev-\* 脊柱 / design-\* / ref-\* 参考层），安装器原样拷入目标项目。
+- **skills/** —— 32 个技能正源（sdlc 总控 / setup-\* / dev-\* 脊柱 / design-\* / ref-\* 参考层），安装器原样拷入目标项目。
 - **agents/&lt;host&gt;/plugins/** —— 插件资产（两级布局，当前宿主 dsh：`agents/dsh/plugins/dsh-demo` 是 demo 插件兼维护者模板，规范见 docs/plugin-assets.md）。
 - **src/ + bin/infra.ts** —— 安装器 CLI 源码（TypeScript ESM，**仓库内零构建直跑**：node 直接执行 .ts）。核心是表驱动：`asset-map.ts`（资产类型→安装机制，新增资产类型=加行不改流程代码）、`catalog.ts`（包内编目）、`installer.ts`（技能拷贝+软链+锁文件）、`plugin-install.ts`（经官方 `dsh plugin` 命令装插件）、`reconcile.ts`（安装后对账）、`lockfile.ts`（.infra-lock.json 记账）。
 - **scripts/** —— 发布面：`prepack.ts`/`postpack.ts`（打包前把 src/bin 编译为同路径 .js 进 tarball、打包后还原仓库树）、`verify-pack.ts`（发布对账门）、`verify-bundle.ts`（插件 bundle 清单校验）。
