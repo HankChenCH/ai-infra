@@ -2,14 +2,16 @@
 //
 // README.md 与 docs/getting-started.md 的命令示例必须与新命令面同相：含 `skill add` /
 // `plugin add` 形态示例与升级叙事，不含已退役旧旗标名（--skills/--plugins）与裸跑两层菜单
-// 旧形态描述；GLOSSARY 安装器词条含子命令形态描述。期望值独立来源 = spec FR-6 验收场景原文
+// 旧形态描述；蓝图主册共享术语节套件资产词条含子命令形态描述（2026-11-25 术语迁册后
+// 读取面 docs/blueprints/README.md，[trivial] 同批改锚）。期望值独立来源 = spec FR-6 验收场景原文
 // 与票面文档纪律（非实现推导）——命令面再变时，本测试与文档同批改。
 // （手法的先例：ci-workflow.test.ts「文件即契约」静态守护。）
 //
 // 卸载与清单六动词（spec 20261122-edb2 FR-6，票 20261122-350f）：README 与 getting-started
 // 含 remove/list/list-remote 双侧（skill 与 plugin）形态示例与卸载叙事、已知边界（锁文件
-// plugins 账面单条目、后装覆盖、--profile 覆盖是唯一显式出口）写明；GLOSSARY 套件资产词条
-// 命令面更新为六动词口径并在项目术语章登记「已装记录」「安装落点」。锚词 = 文档关键句字面，
+// plugins 账面单条目、后装覆盖、--profile 覆盖是唯一显式出口）写明；蓝图主册共享术语节
+// 套件资产词条六动词口径与「已装记录」「安装落点」登记随术语迁册落主册（原 GLOSSARY
+// 项目术语章 2026-11-25 迁出置指针行）。锚词 = 文档关键句字面，
 // 独立来源 = spec FR-6 验收场景原文（非实现推导）。
 
 import { test } from 'node:test';
@@ -53,10 +55,10 @@ test('getting-started：升级叙事含「重跑 skill add 即刷新」与 0.1.x
   assert.match(guide, /从 0\.1\.x 升级[^]*?skill add/, '应含 0.1.x 使用者改跑 skill add 即刷新的升级指路');
 });
 
-test('GLOSSARY 安装器词条：含子命令形态描述（skill add / plugin add --profile）', () => {
-  const glossary = read('GLOSSARY.md');
+test('蓝图主册套件资产词条：含子命令形态描述（skill add / plugin add --profile，迁册后读取面）', () => {
+  const master = read(path.join('docs', 'blueprints', 'README.md'));
   for (const needle of ['skill add [名...]', 'plugin add [名...] --profile <名>']) {
-    assert.ok(glossary.includes(needle), `GLOSSARY 安装器词条应含子命令形态 ${needle}`);
+    assert.ok(master.includes(needle), `蓝图主册套件资产词条应含子命令形态 ${needle}`);
   }
 });
 
@@ -122,8 +124,8 @@ test('getting-started：卸载叙事与已知边界写明（账面单条目、�
   );
 });
 
-test('GLOSSARY 套件资产词条：命令面更新为六动词口径（remove/list/list-remote 双侧）', () => {
-  const glossary = read('GLOSSARY.md');
+test('蓝图主册套件资产词条：命令面更新为六动词口径（remove/list/list-remote 双侧，迁册后读取面）', () => {
+  const master = read(path.join('docs', 'blueprints', 'README.md'));
   for (const needle of [
     'skill remove [名...] [--all]',
     'skill list',
@@ -132,18 +134,18 @@ test('GLOSSARY 套件资产词条：命令面更新为六动词口径（remove/l
     'plugin list',
     'plugin list-remote',
   ]) {
-    assert.ok(glossary.includes(needle), `GLOSSARY 套件资产词条应含六动词口径 ${needle}`);
+    assert.ok(master.includes(needle), `蓝图主册套件资产词条应含六动词口径 ${needle}`);
   }
 });
 
-test('GLOSSARY 项目术语章：登记「已装记录」与「安装落点」（首次出现 spec 20261122-edb2）', () => {
-  const glossary = read('GLOSSARY.md');
-  const projectTerms = glossary.slice(glossary.indexOf('## 项目术语'));
+test('蓝图主册共享术语节：登记「已装记录」与「安装落点」（首次出现 spec 20261122-edb2，迁册后读取面）', () => {
+  const master = read(path.join('docs', 'blueprints', 'README.md'));
+  const projectTerms = master.slice(master.indexOf('## 共享术语节'));
   for (const term of ['**已装记录**', '**安装落点**']) {
-    assert.ok(projectTerms.includes(term), `GLOSSARY 项目术语章应登记 ${term}`);
+    assert.ok(projectTerms.includes(term), `蓝图主册共享术语节应登记 ${term}`);
   }
   assert.ok(
     projectTerms.includes('（首次出现：spec 20261122-edb2'),
-    'GLOSSARY 两新术语应标注首次出现 spec 20261122-edb2',
+    '蓝图主册两新术语应标注首次出现 spec 20261122-edb2',
   );
 });

@@ -2,7 +2,8 @@
 // v1.49 深化扩围：spec 20261124-7e10 实现决策 10，票 20261124-58b8 治理先行 + 票 20261124-2df8 技能落盘；
 // 票 20261124-2800 补齐锚面缺口——检测三处分钉、GLOSSARY 双份两词条、入口索引节句、AGENTS 模板现状句）。
 //
-// 守护边界（哪些文件哪些句受守护）——被守护文件十一份，正向锚 = spec「验收场景」关键句
+// 守护边界（哪些文件哪些句受守护）——被守护文件十二份（2026-11-25 立骨架术语迁册同批
+// 加蓝图主册面，[trivial] 同批改锚待 retro 审计），正向锚 = spec「验收场景」关键句
 // 字面（期望值独立来源，非实现推导），受守护文本再变时本测试与文档同批改：
 // - docs/sdlc-skills-blueprint.md §11.25 dev-blueprint 条目：诞生亮牌两态句（FR-1/FR-2）、
 //   权威序句与 ADR accepted 亮牌句（FR-8）、术语迁册句与归属模糊亮牌句（FR-9，v1.49
@@ -25,10 +26,10 @@
 //   装载对照发现即写行句与内联行格式（FR-4 检测三处之装载支，票 20261124-2800）。
 // - skills/dev-review/SKILL.md：蓝图册按需装载句（实现决策 11）。
 // - skills/dev-clarify/SKILL.md：新术语双语态登记句（FR-9）。
-// - GLOSSARY 双份（根 GLOSSARY.md + skills/setup-workspace/assets/GLOSSARY.md）：「漂移信号」
-//   词条（载体 / 检测三处 / 消解留痕语义，FR-5）与「使用方走查轴」词条蓝图对照项（FR-4），
-//   双份同文按词条行机械 diff（票 20261124-2800；整文件逐字一致由 codeup-projection-sync.test.ts
-//   承载，本面按词条粒度独立断言，期望值 = spec 验收场景字面）。
+// - docs/blueprints/README.md 蓝图主册共享术语节（2026-11-25 立骨架迁册：GLOSSARY 项目术语
+//   章 55 条迁入、原章置指针行，[trivial] 同批改锚）：「漂移信号」词条（载体 / 检测三处 /
+//   消解留痕语义，FR-5）与「使用方走查轴」词条蓝图对照项（FR-4）；GLOSSARY 双份逐字一致
+//   仍由 codeup-projection-sync.test.ts 整文件 diff 承载，本测试另设词条行零残留守卫防回流。
 // - skills/setup-workspace/assets/AGENTS.md 模板：蓝图指针行 + 非哨兵区定位（FR-7）；现状句——
 //   多入口指针形态与占位语义保留 + 负向「round 2 启用」退役锚（FR-1，票 20261124-2800）。
 //
@@ -88,8 +89,9 @@
 //   同 dev-blueprint §4 契约）」（票 20261124-2800）——§8 混合形态条是短镜面变体（无
 //   「验收代理装载对照」前缀与「行格式」后缀），长锚只有轴表行满足，删轴表行必红；
 //   短镜面本身不在锚面（删之不红，此局限在此声明）。
-// - GLOSSARY「漂移信号」「使用方走查轴」词条行在根与 assets 各一份（双份资产）：锚词
-//   双面独立断言 + 词条行机械 diff 双承载，删任一份必红（票 20261124-2800）。
+// - 「漂移信号」「使用方走查轴」词条行 2026-11-25 迁册后单源（蓝图主册共享术语节）：主册
+//   独立断言删之必红；GLOSSARY 双份词条行零残留守卫，词条回流任一份即红（迁册同批改锚，
+//   原「根 + assets 双份承载」形态随迁册退役）。
 // - 不在实现决策 14 锚词清单（票面守护面）里的验收场景句本轮没有守护（如 FR-2 存量
 //   入口识别句、FR-3 入口判定句、FR-4 主册五节清单、FR-5 决策关联叙述句、E1 漂移信号
 //   正向语义、E4 入口候选句——本轮锚词面之外，留后续治理票按需扩围）。评审
@@ -163,6 +165,7 @@ const devClarify = loadSurface(path.join('skills', 'dev-clarify', 'SKILL.md'));
 const agentsAsset = loadSurface(path.join('skills', 'setup-workspace', 'assets', 'AGENTS.md'));
 const rootGlossary = loadSurface('GLOSSARY.md');
 const assetsGlossary = loadSurface(path.join('skills', 'setup-workspace', 'assets', 'GLOSSARY.md'));
+const projectMaster = loadSurface(path.join('docs', 'blueprints', 'README.md'));
 const generationRef = read(path.join('skills', 'setup-workspace', 'references', 'generation.md'));
 
 /** 折行处理：去空白后比对——硬折行不在锚词里留痕迹。 */
@@ -467,10 +470,10 @@ test('assets/AGENTS.md 模板：指针行现状句与占位语义在场（FR-1 �
 
 // ── 正向：GLOSSARY 双份两词条（spec FR-4/FR-5 验收场景字面，票 20261124-2800）──
 
-test('GLOSSARY 双份：「漂移信号」词条在场且含持久载体、检测三处与消解留痕语义（根 + assets）', () => {
-  // spec FR-5 验收场景「词条在场（根 + assets 双份同文）且含检测三处与消解留痕语义」：
-  // 双份各面独立断言（删任一份即红），双份同文另由词条行机械 diff 承载（见双份资产节）
-  assertAnchored([rootGlossary, assetsGlossary], [
+test('蓝图主册共享术语节：「漂移信号」词条在场且含持久载体、检测三处与消解留痕语义（迁册后单源）', () => {
+  // spec FR-5 验收场景「词条在场且含检测三处与消解留痕语义」：2026-11-25 迁册后词条单源
+  // 蓝图主册（[trivial] 同批改锚），删主册词条即红；GLOSSARY 双份一致性由整文件 diff 承载
+  assertAnchored([projectMaster], [
     '- **漂移信号** —— 蓝图与最新轮次产物冲突的待回写标记',
     '持久载体 = 项目主册「待回写漂移」标记行区',
     // 检测三处枚举钉整句——检测者名单任何一处漂移即红
@@ -480,11 +483,11 @@ test('GLOSSARY 双份：「漂移信号」词条在场且含持久载体、检�
   ]);
 });
 
-test('GLOSSARY 双份：「使用方走查轴」词条判断依据含 docs/blueprints/ 蓝图册对照项（根 + assets）', () => {
-  // spec FR-4 走查轴扩围场景「判断依据清单含 docs/blueprints/ 对照项且双份同文」——
-  // 词条措辞与 dev-accept 轴表行不同源（「在盘时装载对照，发现漂移即写主册标记行并留痕
-  // 报告」为词条面独占字面），分面独立钉
-  assertAnchored([rootGlossary, assetsGlossary], [
+test('蓝图主册共享术语节：「使用方走查轴」词条判断依据含 docs/blueprints/ 蓝图册对照项（迁册后单源）', () => {
+  // spec FR-4 走查轴扩围场景「判断依据清单含 docs/blueprints/ 对照项」——词条措辞与
+  // dev-accept 轴表行不同源（「在盘时装载对照，发现漂移即写主册标记行并留痕报告」为
+  // 词条面独占字面），迁册后单源钉（[trivial] 同批改锚）
+  assertAnchored([projectMaster], [
     'docs/blueprints/ 蓝图册（在盘时装载对照，发现漂移即写主册标记行并留痕报告）',
   ]);
 });
@@ -591,28 +594,12 @@ test('双份资产逐字一致：generation.md §2 根版哨兵固定文本 ↔ 
   );
 });
 
-/**
- * GLOSSARY 词条行：行首 `- **<词条名>**` 恰一行的原文截取；缺失或多份一律抛错，
- * 双份读取面不可信不静默（提取手法同 assetSentinelBlock：行定位 + 原文截取）。
- */
-function glossaryEntryLine(full: string, entryName: string): string {
-  const prefix = `- **${entryName}**`;
-  const matches = full.split('\n').filter((line) => line.startsWith(prefix));
-  if (matches.length !== 1) {
-    throw new Error(`GLOSSARY 词条「${entryName}」应恰一行（实为 ${matches.length} 行），双份读取面不可信`);
-  }
-  return matches[0];
-}
-
-test('双份资产逐字一致：GLOSSARY「漂移信号」「使用方走查轴」词条行根 ↔ assets（机械 diff，不等即红）', () => {
-  // spec FR-4/FR-5 验收场景「根 + assets 双份同文」；整文件逐字一致由
-  // codeup-projection-sync.test.ts 承载，此处按词条粒度独立断言（失败信息点名词条，
-  // dual-copy-assets #4）
-  for (const entryName of ['漂移信号', '使用方走查轴'] as const) {
-    assert.equal(
-      glossaryEntryLine(rootGlossary.text, entryName),
-      glossaryEntryLine(assetsGlossary.text, entryName),
-      `GLOSSARY 词条「${entryName}」双份漂移：根 GLOSSARY.md 与 assets GLOSSARY.md 须逐字一致（改一处须同步另一处，dual-copy-assets #4）`,
-    );
-  }
+test('迁册守卫：「漂移信号」「使用方走查轴」词条行在根与 assets GLOSSARY 零命中（迁出后回流即红）', () => {
+  // 2026-11-25 立骨架术语迁册（55 条迁蓝图主册共享术语节、GLOSSARY 原章置指针行）后，
+  // 原词条行机械 diff 失去对象——双份同文由整文件 diff 承载（codeup-projection-sync.test.ts，
+  // dual-copy-assets #4）；本断言转为防回流守卫：词条行在任一份 GLOSSARY 重新出现即红
+  assertRetiredAbsent([rootGlossary, assetsGlossary], [
+    '- **漂移信号** —— 蓝图与最新轮次产物冲突的待回写标记',
+    '- **使用方走查轴** —— dev-accept 的一条独立验收纪律单元',
+  ]);
 });

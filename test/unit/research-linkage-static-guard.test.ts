@@ -2,9 +2,10 @@
 //
 // 守护对象 = 票 20261123-9492 落盘的调研归位语义：澄清就地联动 dev-research 的时序、三路归置
 // 逃生舱「变 FR（调研报告是交付物）」退役、调研分两态归置（纯调研支不经 spec / 票 / 运行管道）、
-// need.fulfilled 推进者镜像。读八文件全文：docs/sdlc-skills-blueprint.md、
+// need.fulfilled 推进者镜像。读九文件全文：docs/sdlc-skills-blueprint.md、
 // skills/dev-clarify/SKILL.md、skills/dev-clarify/references/research.md、
-// skills/dev-research/SKILL.md、skills/dev-spec/SKILL.md、GLOSSARY.md、docs/METHOD.md、
+// skills/dev-research/SKILL.md、skills/dev-spec/SKILL.md、GLOSSARY.md（状态表）、
+// docs/blueprints/README.md（2026-11-25 术语迁册后词条面，[trivial] 同批改锚）、docs/METHOD.md、
 // docs/concepts.md。
 // 锚词 = spec 20261123-c5e1「验收场景」与「实现决策」的字面，期望值独立来源（非实现推导）；
 // 受守护文本再变时，本测试与文档同批改。测试按验收场景组织；测试名括注列出读取面与锚词
@@ -94,6 +95,7 @@ const researchRef = loadSurface(path.join('skills', 'dev-clarify', 'references',
 const devResearch = loadSurface(path.join('skills', 'dev-research', 'SKILL.md'));
 const devSpec = loadSurface(path.join('skills', 'dev-spec', 'SKILL.md'));
 const glossary = loadSurface('GLOSSARY.md');
+const projectMaster = loadSurface(path.join('docs', 'blueprints', 'README.md'));
 const method = loadSurface(path.join('docs', 'METHOD.md'));
 const concepts = loadSurface(path.join('docs', 'concepts.md'));
 
@@ -241,13 +243,13 @@ test('两态判据 = 报告之后是否还有实现交付物；实现前调研�
   assertAnchored([blueprintSpec, devResearch], ['判据 = 报告之后是否还有实现交付物', '实现前调研照常指路 dev-spec']);
 });
 
-test('纯调研需求报告后无实现交付物，不经 spec / 票 / 运行管道（蓝图 §11.14 / dev-research / GLOSSARY）', () => {
+test('纯调研需求报告后无实现交付物，不经 spec / 票 / 运行管道（蓝图 §11.14 / dev-research / 蓝图主册共享术语节）', () => {
   // 蓝图 §11.13 出口门禁另有「不经 spec / 票 / 运行管道：」一份，§11.14 这份靠紧随的
   // 「落点按进入形态分」钉住。
   assertAnchored([blueprintSpec, devResearch], [
     '纯调研需求（报告即全部交付物，报告后无实现交付物）不经 spec / 票 / 运行管道，落点按进入形态分',
   ]);
-  assertAnchored([glossary], ['报告后无实现交付物', '不经 spec / 票 / 运行管道']);
+  assertAnchored([projectMaster], ['报告后无实现交付物', '不经 spec / 票 / 运行管道']);
 });
 
 test('就地联动形态与 need 尚为 draft 的手动触发：只交付报告，不记账、不写 need；回填在定稿前承载，拍板与记账交回 dev-clarify 出口（蓝图 §11.14 / dev-research）', () => {
@@ -259,8 +261,8 @@ test('就地联动形态与 need 尚为 draft 的手动触发：只交付报告�
   ]);
 });
 
-test('记账只对盘上已 confirmed 的对应 need 执行（蓝图 §11.14 / dev-research / GLOSSARY）', () => {
-  assertAnchored([blueprintSpec, devResearch, glossary], ['记账只对盘上已 confirmed 的对应 need 执行']);
+test('记账只对盘上已 confirmed 的对应 need 执行（蓝图 §11.14 / dev-research / 蓝图主册共享术语节）', () => {
+  assertAnchored([blueprintSpec, devResearch, projectMaster], ['记账只对盘上已 confirmed 的对应 need 执行']);
 });
 
 test('拍板口径：成功标准逐条核销、残余风险为空或经用户显式接受，沉默不算（蓝图 §11.13 与 §11.14 各一份 / dev-clarify / dev-research）', () => {
@@ -396,14 +398,14 @@ test('调研引用：装载 need 名下带 need 谱系前缀的调研报告，�
   ]);
 });
 
-// ── 正向：GLOSSARY 词条与 need.fulfilled 推进者镜像 ──
+// ── 正向：蓝图主册共享术语节词条（2026-11-25 迁册后）与 need.fulfilled 推进者镜像 ──
 
-test('GLOSSARY 项目术语章：「纯调研需求」词条在场，判据 = 报告后无实现交付物', () => {
-  assertAnchored([glossary], ['**纯调研需求** —— 报告即全部交付物的 need', '报告后无实现交付物']);
+test('蓝图主册共享术语节：「纯调研需求」词条在场，判据 = 报告后无实现交付物（迁册后读取面）', () => {
+  assertAnchored([projectMaster], ['**纯调研需求** —— 报告即全部交付物的 need', '报告后无实现交付物']);
 });
 
-test('GLOSSARY「纯调研需求」词条：记账归属含 need 尚为 draft 的手动触发（同归 dev-clarify 出口）', () => {
-  assertAnchored([glossary], ['含 need 尚为 draft 的手动触发']);
+test('蓝图主册「纯调研需求」词条：记账归属含 need 尚为 draft 的手动触发（同归 dev-clarify 出口，迁册后读取面）', () => {
+  assertAnchored([projectMaster], ['含 need 尚为 draft 的手动触发']);
 });
 
 test('GLOSSARY 状态表 need.fulfilled 行：推进者含纯调研支经用户通读拍板记账置位，记账出口两形态点名', () => {

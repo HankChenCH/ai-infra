@@ -2,7 +2,7 @@
 //
 // 投影判定树单点在 METHOD「投影约定」节，各技能 publish 步骤只引用不复述；本文件守护
 // 文档面单点与分发副本一致性：METHOD §7.1 三级判定树 / MCP 发现链 / 受理面 / 终态映射、
-// publish 行、GLOSSARY「投影」词条、蓝图 v1.41 修订记录（§5.4 / §11.1 / §14）、
+// publish 行、蓝图主册共享术语节「投影」词条（2026-11-25 术语迁册后读取面，[trivial] 同批改锚）、蓝图 v1.41 修订记录（§5.4 / §11.1 / §14）、
 // 双份资产逐字同文（dual-copy-assets 纪律：改动落活本、assets 整文件复制同步）。
 // 期望值独立来源 = spec 20261119-20b1 实现决策 1–7 与验收场景 FR-7 原文（非实现推导）。
 // （手法先例：ci-workflow.test.ts「文件即契约」静态守护、docs-surface.test.ts 文档面守护。）
@@ -55,17 +55,17 @@ test('METHOD publish 行：指向 §7.1 投影约定并声明双路径同口径'
   );
 });
 
-test('GLOSSARY「投影」词条：双路径同口径形态与 codeup 终态关闭齐备', () => {
-  const glossary = read('GLOSSARY.md');
+test('蓝图主册共享术语节「投影」词条：双路径同口径形态与 codeup 终态关闭齐备（迁册后读取面）', () => {
+  const master = read(path.join('docs', 'blueprints', 'README.md'));
   for (const needle of [
     'METHOD「投影约定」',
     'Codeup MCP',
     'need 建需求单（Req 类',
     '已取消（141230）',
   ]) {
-    assert.ok(glossary.includes(needle), `GLOSSARY「投影」词条应含 ${needle}`);
+    assert.ok(master.includes(needle), `蓝图主册「投影」词条应含 ${needle}`);
   }
-  assert.equal(glossary.includes('codeup 工作项关闭暂不实现'), false, 'GLOSSARY 投影词条不得残留 codeup 关闭暂不实现旧口径');
+  assert.equal(master.includes('codeup 工作项关闭暂不实现'), false, '蓝图主册投影词条不得残留 codeup 关闭暂不实现旧口径');
 });
 
 test('蓝图 v1.41：修订记录、§5.4 publish 行、§11.1 决策①、§14 指引条目齐备', () => {
@@ -246,11 +246,11 @@ test('METHOD §7.1：三腿统一聚合口径受理面，两腿分叉旧表述�
   );
 });
 
-test('GLOSSARY：投影词条三腿聚合口径齐备，「名义归属」词条在场', () => {
-  const glossary = read('GLOSSARY.md');
-  assert.ok(glossary.includes('三腿统一聚合口径'), '投影词条应含三腿聚合口径');
-  assert.ok(glossary.includes('edit-in-place 废止'), '投影词条应声明时间线不可变');
-  assert.ok(glossary.includes('**名义归属**'), 'GLOSSARY 应有名义归属词条');
+test('蓝图主册：投影词条三腿聚合口径齐备，「名义归属」词条在场（迁册后读取面）', () => {
+  const master = read(path.join('docs', 'blueprints', 'README.md'));
+  assert.ok(master.includes('三腿统一聚合口径'), '投影词条应含三腿聚合口径');
+  assert.ok(master.includes('edit-in-place 废止'), '投影词条应声明时间线不可变');
+  assert.ok(master.includes('**名义归属**'), '蓝图主册应有名义归属词条');
 });
 
 test('蓝图 v1.45：聚合口径三腿归一修订记录齐备；头部版本行随最新修订更新', () => {
