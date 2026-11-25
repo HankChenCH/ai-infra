@@ -40,7 +40,8 @@ node .sdlc/check.sh phase|frontier|validate <file>|publish <file>|all   # 流程
 
 ## 改动前必读
 
-- 流程规则：docs/METHOD.md；术语与状态机：GLOSSARY.md。
+- 项目蓝图（设计真相源汇合视图）：docs/blueprints/——项目主册 + 四入口：adoption（接入）/ maintenance（维护）/ skills（技能）/ plugins（插件）；理解与施工装载从主册入。
+- 流程规则：docs/METHOD.md；术语与状态机：GLOSSARY.md（项目术语章已迁蓝图主册共享术语节）。
 - 改任何技能前先改 docs/sdlc-skills-blueprint.md 对应规格（治理规则「先改文档再改技能」）。
 - 编码标准索引与兜底基线：CODING_STANDARDS.md。
 
