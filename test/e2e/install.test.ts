@@ -23,9 +23,22 @@ const BIN = path.join(packageRoot, 'bin', 'infra.ts');
 const rootVersion = (JSON.parse(fs.readFileSync(path.join(packageRoot, 'package.json'), 'utf8')) as { version: string }).version;
 const REPO_SKILLS = path.join(packageRoot, 'skills');
 
-// 交互路径勾选目标（按技能名排序后的下标）：design-brief=1、dev-clarify=5，两者 references/ 齐备
-const PICK_INDICES = [1, 5];
+// 交互路径勾选目标：期望值来源 = 菜单实物（b78c32a 纪律）——skills/ 目录序即编目与
+// 菜单序，技能增删推移字典序时下标自动跟随。硬编码 [1,5] 曾被 20261124-f9e5 新增
+// dev-blueprint 插位钙化成勾错技能（5 号位邻居 dev-clarify 被推到 6 号位，PTY 按下标
+// 勾中新邻居），PICK_NAMES 表意图、下标派生并逐一校验在场，此后增技能零改动。
 const PICK_NAMES = ['design-brief', 'dev-clarify'];
+const MENU_NAMES = fs
+  .readdirSync(REPO_SKILLS, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory())
+  .map((entry) => entry.name)
+  .sort();
+const menuIndexOf = (name: string): number => {
+  const index = MENU_NAMES.indexOf(name);
+  assert.ok(index >= 0, `勾选目标 ${name} 不在包内技能编目（skills/ 菜单实物）——期望值来源漂移，先对齐 PICK_NAMES`);
+  return index;
+};
+const PICK_INDICES = PICK_NAMES.map(menuIndexOf);
 
 function makeTargetProject(t: TestContext, { agentDirs = ['.claude'] }: { agentDirs?: string[] } = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'infra-e2e-'));

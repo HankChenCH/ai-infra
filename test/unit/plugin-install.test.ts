@@ -58,19 +58,23 @@ function makeOfficialSim(t: TestContext, profilePath: string, { failFor = [] }: 
   return { calls, run };
 }
 
-function install(t: TestContext, { plugins = [PKG], now = '2026-11-15T00:00:00Z', run, projectRoot, profilePath, nodeVersion = 'v24.22.1' }: {
+// 全部调用点统一走本助手：nodeVersion 注入是硬纪律——installPlugins 缺省读 ambient
+// process.version（插件前置守卫地板 24.9.0），漏注入即环境敏感红（#365 曾因唯一内联
+// 调用漏注入，在 node22 环境被前置守卫拒装致红，20261125 排查收口）。
+function install(t: TestContext, { plugins = [PKG], now = '2026-11-15T00:00:00Z', run, projectRoot, profilePath, nodeVersion = 'v24.22.1', dshInPath = true }: {
   plugins?: string[];
   now?: string;
   run?: CommandRunner;
   projectRoot: string;
   profilePath: string;
   nodeVersion?: string;
+  dshInPath?: boolean;
 }) {
   return installPlugins({
     profile: 'dev',
     plugins,
     profilePath,
-    dshInPath: true,
+    dshInPath,
     projectRoot,
     packageVersion: '0.1.0',
     now,
@@ -104,16 +108,7 @@ test('dsh 不在 PATH：执行体收到 npx @deepseek-ai/dsh 形态', (t) => {
   const profilePath = makeProfileDir(t);
   const sim = makeOfficialSim(t, profilePath);
 
-  installPlugins({
-    profile: 'dev',
-    plugins: [PKG],
-    profilePath,
-    dshInPath: false,
-    projectRoot,
-    packageVersion: '0.1.0',
-    now: '2026-11-15T00:00:00Z',
-    run: sim.run,
-  });
+  install(t, { projectRoot, profilePath, run: sim.run, dshInPath: false });
 
   assert.equal(sim.calls[0].command, 'npx');
   assert.deepEqual(sim.calls[0].args, ['--yes', '@deepseek-ai/dsh', 'plugin', '--profile', 'dev', 'add', PKG]);

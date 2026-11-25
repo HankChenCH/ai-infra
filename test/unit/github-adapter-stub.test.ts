@@ -111,6 +111,23 @@ function runAdapter(spec: SandboxSpec): RunResult {
   const fakeBin = path.join(root, 'fakebin');
   fs.mkdirSync(fakeBin);
   if (!spec.omitGh) fs.writeFileSync(path.join(fakeBin, 'gh'), FAKE_GH, { mode: 0o755 });
+  // 「gh 缺失」场景用受控目录承载 PATH（20261125 排查收口）：旧写法 PATH=/usr/bin:/bin
+  // 赌系统无 gh——ubuntu runner 预装真 gh（未认证态）使适配器走「未认证」分支，CI 唯一
+  // unit 红且卡死整条流水线（e2e 步从未执行）。注入目录只放脚本 gh 门（command -v 探测）
+  // 之前用到的外部命令（github.sh 18-98 行工具面：dirname/grep/awk），gh 在 PATH 上不可达
+  // 即「缺失」语义，与本机/CI 装没装 gh 无关；脚本 gh 前新增外部命令时在此补符号链接。
+  const ghlessBin = path.join(root, 'ghlessbin');
+  fs.mkdirSync(ghlessBin);
+  if (spec.omitGh) {
+    // spawnSync 按子进程 env.PATH 解析可执行文件（实测 PATH 不含 bash 即 spawn ENOENT），
+    // 受控目录须含 bash 本体：位置取父进程 PATH 解析（spawnSync 不带 env 即查父 PATH）。
+    const bashReal = spawnSync('bash', ['-c', 'command -v bash'], { encoding: 'utf8' }).stdout.trim();
+    // github.sh gh 门（command -v gh）之前的全部外部命令面（1-98 行扫描实证）：
+    // bash + dirname/grep/awk/basename/env；gh 门后 warn_skip 即退，不再有外部依赖。
+    for (const tool of [bashReal, '/usr/bin/dirname', '/usr/bin/grep', '/usr/bin/awk', '/usr/bin/basename', '/usr/bin/env']) {
+      fs.symlinkSync(tool, path.join(ghlessBin, path.basename(tool)));
+    }
+  }
   fs.mkdirSync(path.join(root, '.sdlc', 'trackers'), { recursive: true });
   fs.copyFileSync(ADAPTER, path.join(root, '.sdlc', 'trackers', 'github.sh'));
   fs.writeFileSync(
@@ -144,7 +161,7 @@ function runAdapter(spec: SandboxSpec): RunResult {
   if (spec.newNum !== undefined) env.FAKE_GH_NEW_NUM = spec.newNum;
   const res = spawnSync('bash', [path.join(root, '.sdlc', 'trackers', 'github.sh'), 'publish', path.join(root, rel)], {
     cwd: root,
-    env: spec.omitGh ? { ...process.env, PATH: '/usr/bin:/bin', FAKE_GH_LOG: logPath } : { ...env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` },
+    env: spec.omitGh ? { ...process.env, PATH: ghlessBin, FAKE_GH_LOG: logPath } : { ...env, PATH: `${fakeBin}${path.delimiter}${process.env.PATH}` },
     encoding: 'utf-8',
   });
 

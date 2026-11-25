@@ -180,12 +180,15 @@ function readProfilePkg(dshHome: string) {
   return JSON.parse(fs.readFileSync(path.join(dshHome, 'profiles', PROFILE, 'package.json'), 'utf8'));
 }
 
-// profile node_modules 下实装包的清单：scoped 包名 → 目录路径的截段只在此处定义
+// profile node_modules 下实装包的清单路径：scoped 包名 → 目录路径的截段只在此处定义
 //（parse-normalization 规则 1），安装段与幂等段共用同一读取口径（demo 缺省，manager
 // 落点用例传 @deepseek-ai/dsh-mcp-manager——readManagerVersion 读取契约的同款直达路径）。
+function installedManifestPath(dshHome: string, pkgName = PKG) {
+  return path.join(dshHome, 'profiles', PROFILE, 'node_modules', ...pkgName.split('/'), 'package.json');
+}
+
 function readInstalledManifest(dshHome: string, pkgName = PKG) {
-  const manifestPath = path.join(dshHome, 'profiles', PROFILE, 'node_modules', ...pkgName.split('/'), 'package.json');
-  return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  return JSON.parse(fs.readFileSync(installedManifestPath(dshHome, pkgName), 'utf8'));
 }
 
 function readLockfile(projectRoot: string) {
@@ -432,16 +435,16 @@ test(`[FR-2|集成级] ${PKG} 真装后 plugin rm 真卸：profile 两落点真�
   assert.deepEqual(lockfile.skills, {}, 'skills 记账为空对象（骨架保留）');
 });
 
-// —— [FR-5|集成级] manager 解析副本落点（评审 20261120-4f76 阻断 2 集成复核清单）——
-// 真实链路工件级断言（stub-fidelity-integration 判据 2：协作者写入的工件由协作者决定，
-// 替身写的字面 ≠ 协作者写的字面——单元 makeManagerCopy 与 shim e2e 写的直达落点不得只靠
-// 替身背书）：@hankchen/dsh-mcp 真装后 manager（其普通 dependencies）解析副本应直达可达
-// （readManagerVersion 读取契约的真实落点）；官方安装管线 hoist 形态漂移 → 副本缺失/错位
-// → 本用例红，且 CLI 装后就绪核验同位拦截（missing → fail-loud 退出非零）。
-// 一手探针实证（2026-11-20 本机 desktop profile 事故现场，留痕票 Progress）：直达落点成立、
-// node_modules/.pnpm 内无该包虚拟仓条目——本用例在真实链路上持续锚定该实证布局。
+// —— [FR-5|集成级] manager 供给形态真链路锚（ADR 20261120-5606 供给模型）——
+// 真实链路工件级断言（stub-fidelity-integration 判据 2）：插件已剥离 manager 依赖副本
+//（包 dependencies 无 manager，供给责任移交装后就绪核验），官方命令真装后 profile 依赖树
+// 不得出现 manager 副本，CLI 装后核验对缺副本 fail-loud 退出非零。旧锚「副本直达可达」
+// 随 ADR 20261120-5606 证伪退役——曾与本目录外的 dsh-mcp-web FR-7 新锚（「安装后依赖树
+// 无 manager 副本」，绿）双锚矛盾潜伏：node22 环境 skip 门 + CI 死于 unit 步双重遮蔽
+//（20261125 排查开箱）。若官方 CLI 改为装时供给 manager，出口与落点两断言同红——星座
+// 漂移，需对齐后再跑集成。
 
-test(`[FR-5|集成级] ${MCP_PKG.name} 真装：manager 解析副本落点直达可达、版本可读`, async (t) => {
+test(`[FR-5|集成级] ${MCP_PKG.name} 真装：profile 依赖树无 manager 副本、装后核验缺副本 fail-loud 退出非零`, async (t) => {
   // 门（node-test-skip-gate 纪律：门函数返回 boolean / 内联 return 截断；门内硬断言照常抛错）
   try {
     assertPluginPreconditions({ nodeVersion: process.version, profile: PROFILE });
@@ -470,29 +473,29 @@ test(`[FR-5|集成级] ${MCP_PKG.name} 真装：manager 解析副本落点直达
   const dshHome = makeTempDir(t, 'infra-integration-dshhome-');
 
   const installed = runInstallCli(projectRoot, dshHome, MCP_PKG.name);
-  // CLI 出口契约形态（本机 2026-11-20 真实链路实证留痕票 Progress）：官方生态版本漂移是
-  // 确定形态——registry 上 manager dist-tags.latest = 0.2.2-rc.2（未指最新 rc），`^0.2.2-rc.2`
-  // 解析副本锚 latest = 0.2.2-rc.2，而 CLI 探测 0.2.2-rc.5 → 核验 mismatch fail-loud 退出 1
-  //（恰是本核验门要拦截的真实伤害：宿主 boot 兼容门将静默禁用 manager 行）。出口断言钉
-  // 契约行为而非官方对齐状态：退出 0 = pass/降级；退出 1 必经 ✗ 核验未通过头行（fail-loud
-  // 有据）；崩溃/静默才红。
+  // CLI 出口契约（缺副本确定分支，ADR 20261120-5606）：非精确同版或缺副本 → 退出非零 +
+  // ✗ 头行 fail-loud；探测失败降级警告分支（exit 0 继续）由 shim e2e 承载。本场景 dsh
+  // 探测必成（官方命令刚真装成功），缺副本形态确定。
+  assert.equal(
+    installed.code,
+    1,
+    `${MCP_PKG.name} 真装应因缺 manager 副本 fail-loud 退出 1（实际 ${installed.code}${installed.error !== undefined ? `，error ${installed.error.message}` : installed.signal !== null ? `，signal ${installed.signal}` : ''}）：${installed.stdout}${installed.stderr}`,
+  );
   assert.ok(
-    installed.code === 0 || (installed.code === 1 && installed.stderr.includes('装后就绪核验未通过')),
-    `${MCP_PKG.name} 安装出口应落核验契约形态（0=通过/降级；1=✗ 未通过 fail-loud；实际 ${installed.code}${installed.error !== undefined ? `，error ${installed.error.message}` : installed.signal !== null ? `，signal ${installed.signal}` : ''}）：${installed.stdout}${installed.stderr}`,
+    installed.stderr.includes('装后就绪核验未通过'),
+    `退出 1 应经 ✗ 核验未通过头行（fail-loud 有据），实际：${installed.stderr}`,
   );
 
-  // 工件级落点断言（本用例核心，独立于 CLI 出口形态）：manager 解析副本直达可达、版本可读
-  //（readManagerVersion 契约的真实落点——mismatch 分支能携带 managerVersion 即读取成功的
-  // 镜像；若官方管线 hoist 形态漂移，此断言红且 CLI 同位 missing fail-loud）。
-  const managerManifest = readInstalledManifest(dshHome, MANAGER_PACKAGE);
-  assert.equal(managerManifest.name, MANAGER_PACKAGE, 'manager 副本 package.json 应含正名');
-  assert.ok(
-    typeof managerManifest.version === 'string' && managerManifest.version.trim() !== '',
-    'manager 副本 package.json 应含非空 version（readManagerVersion 可解析）',
+  // 工件级落点断言（本用例核心，与 dsh-mcp-web FR-7「安装后依赖树无 manager 副本」同锚）：
+  // profile 依赖树无 manager 副本——旧供给模型（插件 dependencies 携带副本）已被
+  // ADR 20261120-5606 证伪废弃。
+  assert.equal(
+    fs.existsSync(installedManifestPath(dshHome, MANAGER_PACKAGE)),
+    false,
+    'profile 依赖树不应出现 manager 副本（插件已剥依赖，供给责任在装后核验，ADR 20261120-5606）',
   );
-  // 宿主插件实装齐备（manager 的供给方）：断言工件齐备语义（依赖行落盘 + 实装版本非空），
-  // 不钉 registry latest——官方写什么由官方决定（本机实证官方依赖范围解析滞后于 registry
-  // latest：npm view 0.3.2 vs 实装 0.3.1，stub-fidelity 判据 2 同款口径，留痕票 Progress）。
+  // 宿主插件实装齐备：断言工件齐备语义（依赖行落盘 + 实装版本非空），
+  // 不钉 registry latest——官方写什么由官方决定（stub-fidelity 判据 2 口径）。
   const profilePkgMcp = readProfilePkg(dshHome);
   const mcpRange = profilePkgMcp.dependencies?.[MCP_PKG.name];
   assert.ok(typeof mcpRange === 'string' && mcpRange.length > 0, '宿主插件依赖行应落盘（官方写入的依赖声明）');
